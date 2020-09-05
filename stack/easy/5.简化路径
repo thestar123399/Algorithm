@@ -1,0 +1,289 @@
+以 Unix 风格给出一个文件的绝对路径，你需要简化它。或者换句话说，将其转换为规范路径。
+
+在 Unix 风格的文件系统中，一个点（.）表示当前目录本身；此外，两个点 （..） 表示将目录切换到上一级（指向父目录）；两者都可以是复杂相对路径的组成部分。更多信息请参阅：Linux / Unix中的绝对路径 vs 相对路径
+
+请注意，返回的规范路径必须始终以斜杠 / 开头，并且两个目录名之间必须只有一个斜杠 /。最后一个目录名（如果存在）不能以 / 结尾。此外，规范路径必须是表示绝对路径的最短字符串。
+
+ 
+
+示例 1：
+
+输入："/home/"
+输出："/home"
+解释：注意，最后一个目录名后面没有斜杠。
+示例 2：
+
+输入："/../"
+输出："/"
+解释：从根目录向上一级是不可行的，因为根是你可以到达的最高级。
+示例 3：
+
+输入："/home//foo/"
+输出："/home/foo"
+解释：在规范路径中，多个连续斜杠需要用一个斜杠替换。
+示例 4：
+
+输入："/a/./b/../../c/"
+输出："/c"
+示例 5：
+
+输入："/a/../../b/../c//.//"
+输出："/c"
+示例 6：
+
+输入："/a//b////c/d//././/.."
+输出："/a/b/c"
+
+
+C++
+class Solution {
+public:
+    string simplifyPath(string path) {
+        stringstream ss(path);
+        stack<string> st;
+        string result = "",temp = "";
+
+        while(getline(ss,temp,'/')) {
+            if(temp == "." || temp == "") continue;
+            else if(temp == ".." && !st.empty()){
+                st.pop();
+            }
+            else if(temp != ".."){
+                st.push(temp);
+            }
+        }
+
+        if(st.empty()) result += "/";
+        while(!st.empty()) {
+            string str = st.top();
+            result = "/" + str + result;
+            st.pop();
+        }
+
+        return result;
+    }
+};
+
+
+****************************************************************
+解题思路
+可能有些伙伴还不理解题目吧，我这里简单说明一下：
+
+路径以'/'为分界线；要注意可能存在"////"这种情况
+遇到".."，则切换到上一级目录
+其他情况可不做处理
+
+class Solution {
+public:
+    string simplifyPath(string path) {
+        path+='/';
+        stack<string> temp_stack;
+        string temp_string;
+        for(auto c:path){
+            //两个'/'之间为单级目录子串
+            if(c=='/'){
+                //地址从前向后跳转，如两个'/'之间的地址字符串是“..”，切换上一级目录，即将最后压入的一级目录弹出
+                if(temp_string==".."){
+                    if(!temp_stack.empty()) temp_stack.pop();
+                    //考虑特殊情况，如果前面没有进入子目录，一开始就是".."，此时既不能压入栈也无法弹出，需要排除，不做操作即可
+                }
+                //其他情况，如两个'/'之间的地址字符串存在，且不为'.'（同级目录，无变化），必为字母组成的地址，因此压入栈
+                else if (temp_string!="." && !temp_string.empty()){
+                    temp_stack.push(temp_string);
+                }
+                //清空单级目录字符串，准备记录下两个'/'之间的目录字符串
+                temp_string.clear();
+            }
+            //记录单级目录字符串
+            else{
+                temp_string.push_back(c);
+            }
+        }
+        //从栈中取出各级目录子串，加上'/'形成完整地址
+        string result;
+        while(!temp_stack.empty()){
+            result='/'+temp_stack.top()+result;
+            temp_stack.pop();
+        }
+        //特殊情况，栈中无元素，没有扫描到有效地址，则返回'/'
+        if(result.empty()) result="/";
+        return result;
+    }
+};
+
+解题思路
+使用栈简化路径，通过下标，依次扫描每个字符，根据规则，进行简化！具体做法如下：
+
+若当前下标的字符为/，判断栈顶的字符否也为/,若是，则说明/重复，跳过，否则将该/入栈
+若当前下标的字符为.，看以该字符开头的串是.，..，还是...hidden这样的路径名，对应各自规则处理
+其他字符则入栈
+将栈中所有字符出栈，得到结果字符串的反转字符串。再经过反转之后即可得到原始字符串
+
+class Solution {
+public:
+    string simplifyPath(string path) {
+        stack<char> sk;
+        string res;
+        int i = 0;
+        while(i<path.size()){
+            // 斜杠，如果能和栈顶组成两个斜杠，则多余，否则入栈
+            if(path[i] == '/'){
+                if(!sk.empty() && sk.top() == '/'){
+                    i++;
+                    continue;
+                }
+                sk.push(path[i++]);
+            }
+            // 判断是为.这样的当前路径，还是..这样的上一层路径，或是 ...hidden这样的一个合法路径
+            else if(path[i] == '.'){
+                int j = i;
+                string temp =  ".";
+                while(j + 1< path.size() && path[j+1] != '/'){
+                    j++;
+                    temp += path[j];
+                }
+
+                // 为当前路径.
+                if(j-i == 0) i++;
+                // 为上一层路径..
+                else if(j-i == 1){
+                    if(sk.size() > 1) sk.pop();
+                    while(sk.size() > 1 && sk.top() != '/') sk.pop();
+                    i = j+1;
+                }
+                // 一个合法子路径
+                else{
+                    for(char c: temp) sk.push(c);
+                    i=j+1;
+                }
+            }
+            //其他字符，入栈
+            else{
+                sk.push(path[i++]);
+            }
+        }
+        if(sk.size() > 1 && sk.top() == '/') sk.pop();
+        while(!sk.empty()) {
+            res += sk.top();
+            sk.pop();
+        }
+        //反转得到结果字符串
+        int len = res.size();
+        int mid = len / 2;
+        i = 0;
+        while(i < mid){
+            char temp = res[i];
+            res[i] = res[len-i-1];
+            res[len-i-1] = temp;
+            i++;
+        }
+        return res;
+    }
+};
+
+
+Python
+******************************************************
+思路:
+一句话解释: 栈解决,把当前目录压入栈中,遇到..弹出栈顶,最后返回栈中元素.
+
+方法1
+class Solution:
+    def simplifyPath(self, path: str) -> str:
+        stack = []
+        path = path.split("/")
+
+        for item in path:
+            if item == "..":
+                if stack : stack.pop()
+            elif item and item != ".":
+                stack.append(item)
+        return "/" + "/".join(stack)
+
+方法2
+class Solution:
+    def simplifyPath(self, path: str) -> str:
+        r = []
+        for s in path.split('/'):
+            r = {'':r, '.':r, '..':r[:-1]}.get(s, r + [s])
+        return '/' + '/'.join(r)
+
+
+
+Java
+*************************************************************
+方法1
+class Solution {
+    public String simplifyPath(String path) {
+        Deque<String> stack = new LinkedList<>();
+        for (String item : path.split("/")) {
+            if (item.equals("..")) {
+                if (!stack.isEmpty()) stack.pop();
+            } else if (!item.isEmpty() && !item.equals(".")) stack.push(item);
+        }
+        String res = "";
+        for (String d : stack) res = "/" + d + res;
+        return res.isEmpty() ? "/" : res;  
+    }
+}
+
+方法2
+1.此题主要考察的是栈,所以定义一个辅助栈;
+2.先把字符串以"/"为分隔符分割成数组,此时数组有"路径"、""、"."、".."这四种情况;
+3.遍历数组,当s[i].equals("..")并且栈不空时pop,当!s[i].equals("") && !s[i].equals(".") && !s[i].equals(".."),即s[i]是路径入栈;
+4.栈空,返回"/",栈非空,用StringBuffer做一个连接返回即可;
+5完结。
+
+public String simplifyPath(String path) {
+        String[] s = path.split("/");
+        Stack<String> stack = new Stack<>();
+        
+        for (int i = 0; i < s.length; i++) {
+            if (!stack.isEmpty() && s[i].equals(".."))
+                stack.pop();
+            else if (!s[i].equals("") && !s[i].equals(".") && !s[i].equals(".."))
+                stack.push(s[i]);
+        }
+        if (stack.isEmpty())
+            return "/";
+
+        StringBuffer res = new StringBuffer();
+        for (int i = 0; i < stack.size(); i++) {
+            res.append("/" + stack.get(i));
+        }
+        return res.toString();
+    }
+
+利用deque的性质做了优化。 注意Deque作为队列时，双向链表头即队列头；Deque作为栈时，双向链表头即栈顶。故最后应该用pollLast()。
+
+//双向队列
+    public String simplifyPath(String path) {
+        String[] dirs = path.split("/");
+        Deque<String> deque = new LinkedList<>();
+
+        //1.先作为栈，入栈和出栈
+        for (int i = 0; i < dirs.length; i++) {
+            //".."表示切换到父目录，故要使当前目录即栈顶出栈
+            if (!deque.isEmpty() && dirs[i].equals("..")) {
+                deque.pop();
+            } else if (!dirs[i].equals("")
+                    && !dirs[i].equals(".")
+                    && !dirs[i].equals("..")){
+                deque.push(dirs[i]);
+            }
+        }
+
+        //特判为空时，返回根目录
+        if (deque.isEmpty()) {
+            return "/";
+        }
+        
+        //2.作为队列，进行路径的拼接
+        StringBuilder sb = new StringBuilder();
+        while (!deque.isEmpty()) {
+            sb.append("/").append(deque.pollLast());
+        }
+
+        return sb.toString();
+    }
+
