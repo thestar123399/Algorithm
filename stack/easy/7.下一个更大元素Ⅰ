@@ -1,0 +1,556 @@
+给定两个 没有重复元素 的数组 nums1 和 nums2 ，其中nums1 是 nums2 的子集。找到 nums1 中每个元素在 nums2 中的下一个比其大的值。
+
+nums1 中数字 x 的下一个更大元素是指 x 在 nums2 中对应位置的右边的第一个比 x 大的元素。如果不存在，对应位置输出 -1 。
+
+ 
+
+示例 1:
+
+输入: nums1 = [4,1,2], nums2 = [1,3,4,2].
+输出: [-1,3,-1]
+解释:
+    对于num1中的数字4，你无法在第二个数组中找到下一个更大的数字，因此输出 -1。
+    对于num1中的数字1，第二个数组中数字1右边的下一个较大数字是 3。
+    对于num1中的数字2，第二个数组中没有下一个更大的数字，因此输出 -1。
+示例 2:
+
+输入: nums1 = [2,4], nums2 = [1,2,3,4].
+输出: [3,-1]
+解释:
+    对于 num1 中的数字 2 ，第二个数组中的下一个较大数字是 3 。
+    对于 num1 中的数字 4 ，第二个数组中没有下一个更大的数字，因此输出 -1 。
+ 
+
+提示：
+
+nums1和nums2中所有元素是唯一的。
+nums1和nums2 的数组大小都不超过1000。
+
+C++
+class Solution {
+public:
+    vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+        int size1 = nums1.size();
+        int size2 = nums2.size();
+        vector<int> res;
+        
+        for(int i=0; i<size1; i++){
+            int j = 0;
+            while(nums1[i] != nums2[j]) j++;
+            j++;
+
+            for(; j<size2; j++){
+                if(nums2[j]>nums1[i]){
+                    res.push_back(nums2[j]);
+                    break;
+                }
+            }
+
+            if(j == size2) res.push_back(-1);
+        }
+
+        return res;
+    }
+};
+
+C++
+***************************************************************************
+方法一 暴力解法
+对于nums1的每个元素，在nums2中找到它，假设它的下标为i，那么从第i+1位开始搜索是否存在比它大的，找到就将该值加入记录中，否则加入-1
+
+class Solution {
+public:
+    vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+        vector<int> res;
+        for(int n: nums1){
+            int i = 0;
+            while(nums2[i] != n) i++;
+            i++;
+            for(;i<nums2.size();i++){
+                if(nums2[i] > n){
+                    res.push_back(nums2[i]);
+                    break;
+                }
+            }
+            if(i == nums2.size()) res.push_back(-1);
+        }
+        return res;
+    }
+};
+
+方法二单调栈
+对于nums2的元素，维护一个单调不增的栈。依次扫描nums2的元素，假如扫到第i位，而且当前栈顶元素小于第i位元素，则栈顶元素找到了下一个比它大的元素。将其记录到哈希表中。否则将第i位元素入栈。当扫描完nums2，留在栈中的元素都是没有比它大的元素存在的。最后，对于nums1的每个元素，依次查询哈希表即可得到他们的下一个更大元素
+
+class Solution {
+public:
+    vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+        vector<int> res;
+        unordered_map<int, int> mp;
+        stack<int> sk;
+        for(int n: nums2){
+            while(!sk.empty() && sk.top() < n){
+                mp[sk.top()] = n;
+                sk.pop();
+            }
+            sk.push(n);
+        }
+        while(!sk.empty()){
+            mp[sk.top()] = -1;
+            sk.pop();
+        }
+        for(int n: nums1){
+            res.push_back(mp[n]);
+        }
+        return res;        
+    }
+};
+
+**********
+单调栈+哈希Map
+
+class Solution {
+public:
+    vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+        unordered_map<int, int> aMap;
+        stack<int> aStack;
+
+        // 输出第一个比x大的数 
+        for (auto num2 : nums2) {
+            while (!aStack.empty() && num2 > aStack.top()) {
+                aMap[aStack.top()] = num2;
+                aStack.pop();
+            }
+            aStack.emplace(num2);
+        }
+
+        // 没有更大的数
+        while (!aStack.empty()) {
+            aMap[aStack.top()] = -1;
+            aStack.pop();
+        }
+
+        vector<int> ans;
+        for (auto num1 : nums1)
+            ans.emplace_back(aMap[num1]);
+
+        return ans;
+    }
+};
+
+方法三
+/*递增栈：(从栈顶到栈底递增)
+1.元素入栈之后，其下面元素一定是其左边第一个比它大的数；(可用来求每个元素左边更大的第一个元素)
+2.若在元素插入之前，栈顶元素比插入元素小，那么栈顶元素一定是插入元素左边第一个比它小的数
+3.若在元素插入之前，栈顶元素比插入元素小，那么待插入元素是所有需要出栈的元素右边第一个更大的数； (可用来求每个元素右边更大的第一个元素)
+4.最后一定会留下最大的数（对较大的数更有利）
+
+递减栈：(从栈顶到栈底递减)
+1.元素入栈之后，其下面的元素一定是其左边第一个比它小的数；(可用来求每个元素左边更小的第一个元素)
+2.若在元素插入之前，栈顶元素比插入元素更大，那么栈顶元素一定是待插入元素左边一个更大的数
+3.若在元素插入之前，栈顶元素比插入元素更大，那么栈顶元素一定是所有需要出栈的元素右边更小的数；(可用来求每个元素右边更小的第一个元素)
+4.最后一定会留下最小的数（对较小 的数更有利）
+*/
+
+/*1.正向用递增栈*/
+/*class Solution {
+public:
+    vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+        map<int,int> PMap;
+        stack<int> UpStack;
+        vector<int> result;
+        for(int i=0;i<nums2.size();i++){
+            if(UpStack.empty()||UpStack.top()>nums2[i])
+                UpStack.push(nums2[i]);
+            else{
+                while(!UpStack.empty()&&UpStack.top()<nums2[i]){
+                    PMap.insert({UpStack.top(),nums2[i]});
+                    UpStack.pop();
+                }
+                UpStack.push(nums2[i]);
+            }
+        }
+        while(!UpStack.empty()){
+            PMap.insert({UpStack.top(),-1});
+            UpStack.pop();
+        }
+        for(int i=0;i<nums1.size();i++){
+            result.push_back(PMap[nums1[i]]);   //map的下标操作返回值是和value的类型一样的
+        }
+        return result;
+    }
+};*/
+
+/*2.反向使用递增栈*/
+class Solution {
+public:
+    vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+        map<int,int> PMap;
+        stack<int> DStack;
+        vector<int> result;
+        for(int i=nums2.size()-1;i>=0;i--){
+            if(DStack.empty()){
+                PMap.insert({nums2[i],-1});
+                DStack.push(nums2[i]);
+            }
+            else if(DStack.top()>nums2[i]){
+                PMap.insert({nums2[i],DStack.top()});
+                DStack.push(nums2[i]);
+            }
+            else{
+                while(!DStack.empty()&&DStack.top()<nums2[i])
+                   DStack.pop();
+                if(DStack.empty())
+                   PMap.insert({nums2[i],-1});
+                else
+                   PMap.insert({nums2[i],DStack.top()}); 
+                DStack.push(nums2[i]);
+            }
+        }
+        for(int i=0;i<nums1.size();i++)
+            result.push_back(PMap[nums1[i]]);   //map的下标操作返回值是和value的类型一样的
+        return result;
+    }
+};
+
+方法四
+栈（stack）是很简单的一种数据结构，先进后出的逻辑顺序，符合某些问题的特点，比如说函数调用栈。
+
+单调栈实际上就是栈，只是利用了一些巧妙的逻辑，使得每次新元素入栈后，栈内的元素都保持有序（单调递增或单调递减）。
+
+听起来有点像堆（heap）？不是的，单调栈用途不太广泛，只处理一种典型的问题，叫做 Next Greater Element。本文用讲解单调队列的算法模版解决这类问题，并且探讨处理「循环数组」的策略。
+
+首先，讲解 Next Greater Number 的原始问题：给你一个数组，返回一个等长的数组，对应索引存储着下一个更大元素，如果没有更大的元素，就存 -1。不好用语言解释清楚，直接上一个例子：
+
+给你一个数组 [2,1,2,4,3]，你返回数组 [4,2,4,-1,-1]。
+
+解释：第一个 2 后面比 2 大的数是 4; 1 后面比 1 大的数是 2；第二个 2 后面比 2 大的数是 4; 4 后面没有比 4 大的数，填 -1；3 后面没有比 3 大的数，填 -1。
+
+这道题的暴力解法很好想到，就是对每个元素后面都进行扫描，找到第一个更大的元素就行了。但是暴力解法的时间复杂度是 O(n^2)。
+
+这个问题可以这样抽象思考：把数组的元素想象成并列站立的人，元素大小想象成人的身高。这些人面对你站成一列，如何求元素「2」的 Next Greater Number 呢？很简单，如果能够看到元素「2」，那么他后面可见的第一个人就是「2」的 Next Greater Number，因为比「2」小的元素身高不够，都被「2」挡住了，第一个露出来的就是答案。
+
+vector<int> nextGreaterElement(vector<int>& nums) {
+    vector<int> ans(nums.size()); // 存放答案的数组
+    stack<int> s;
+    for (int i = nums.size() - 1; i >= 0; i--) { // 倒着往栈里放
+        while (!s.empty() && s.top() <= nums[i]) { // 判定个子高矮
+            s.pop(); // 矮个起开，反正也被挡着了。。。
+        }
+        ans[i] = s.empty() ? -1 : s.top(); // 这个元素身后的第一个高个
+        s.push(nums[i]); // 进队，接受之后的身高判定吧！
+    }
+    return ans;
+}
+这就是单调队列解决问题的模板。for 循环要从后往前扫描元素，因为我们借助的是栈的结构，倒着入栈，其实是正着出栈。while 循环是把两个“高个”元素之间的元素排除，因为他们的存在没有意义，前面挡着个“更高”的元素，所以他们不可能被作为后续进来的元素的 Next Great Number 了。
+
+这个算法的时间复杂度不是那么直观，如果你看到 for 循环嵌套 while 循环，可能认为这个算法的复杂度也是 O(n^2)，但是实际上这个算法的复杂度只有 O(n)。
+
+分析它的时间复杂度，要从整体来看：总共有 n 个元素，每个元素都被 push 入栈了一次，而最多会被 pop 一次，没有任何冗余操作。所以总的计算规模是和元素规模 n 成正比的，也就是 O(n) 的复杂度。
+
+*****************
+已经掌握了单调栈的使用技巧，来一个简单的变形来加深一下理解。
+
+给你一个数组 T = [73, 74, 75, 71, 69, 72, 76, 73]，这个数组存放的是近几天的天气气温（这气温是铁板烧？不是的，这里用的华氏度）。你返回一个数组，计算：对于每一天，你还要至少等多少天才能等到一个更暖和的气温；如果等不到那一天，填 0 。
+
+举例：给你 T = [73, 74, 75, 71, 69, 72, 76, 73]，你返回 [1, 1, 4, 2, 1, 1, 0, 0]。
+
+解释：第一天 73 华氏度，第二天 74 华氏度，比 73 大，所以对于第一天，只要等一天就能等到一个更暖和的气温。后面的同理。
+
+你已经对 Next Greater Number 类型问题有些敏感了，这个问题本质上也是找 Next Greater Number，只不过现在不是问你 Next Greater Number 是多少，而是问你当前距离 Next Greater Number 的距离而已。
+
+相同类型的问题，相同的思路，直接调用单调栈的算法模板，稍作改动就可以啦，直接上代码把。
+
+vector<int> dailyTemperatures(vector<int>& T) {
+    vector<int> ans(T.size());
+    stack<int> s; // 这里放元素索引，而不是元素
+    for (int i = T.size() - 1; i >= 0; i--) {
+        while (!s.empty() && T[s.top()] <= T[i]) {
+            s.pop();
+        }
+        ans[i] = s.empty() ? 0 : (s.top() - i); // 得到索引间距
+        s.push(i); // 加入索引，而不是元素
+    }
+    return ans;
+}
+
+**********************
+单调栈讲解完毕。下面开始另一个重点：如何处理「循环数组」。
+
+同样是 Next Greater Number，现在假设给你的数组是个环形的，如何处理？
+
+给你一个数组 [2,1,2,4,3]，你返回数组 [4,2,4,-1,4]。拥有了环形属性，最后一个元素 3 绕了一圈后找到了比自己大的元素 4 。
+
+首先，计算机的内存都是线性的，没有真正意义上的环形数组，但是我们可以模拟出环形数组的效果，一般是通过 % 运算符求模（余数），获得环形特效：
+回到 Next Greater Number 的问题，增加了环形属性后，问题的难点在于：这个 Next 的意义不仅仅是当前元素的右边了，有可能出现在当前元素的左边（如上例）。
+
+明确问题，问题就已经解决了一半了。我们可以考虑这样的思路：将原始数组“翻倍”，就是在后面再接一个原始数组，这样的话，按照之前“比身高”的流程，每个元素不仅可以比较自己右边的元素，而且也可以和左边的元素比较了。
+
+
+
+怎么实现呢？你当然可以把这个双倍长度的数组构造出来，然后套用算法模板。但是，我们可以不用构造新数组，而是利用循环数组的技巧来模拟。直接看代码吧：
+
+
+vector<int> nextGreaterElements(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> res(n); // 存放结果
+    stack<int> s;
+    // 假装这个数组长度翻倍了
+    for (int i = 2 * n - 1; i >= 0; i--) {
+        while (!s.empty() && s.top() <= nums[i % n])
+            s.pop();
+        res[i % n] = s.empty() ? -1 : s.top();
+        s.push(nums[i % n]);
+    }
+    return res;
+}
+
+*****************************************
+三种方法：暴力法；哈希表+栈；优化暴力法；
+class Solution {
+public:
+    vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+        /*
+        //暴力法
+        vector<int> ans;
+        for (int i=0; i<nums1.size(); ++i){
+            int address = nums2.size();
+            for (int j=0; j<nums2.size(); ++j){
+                if (nums2[j] == nums1[i]) address = j;
+                else {
+                    if (j>address && nums2[j]>nums1[i]) {
+                       ans.push_back(nums2[j]); 
+                       break;
+                    }
+                    else continue; 
+                }
+            }
+            if (ans.size() != i+1) ans.push_back(-1);
+        }
+        return ans;
+        */
+
+        /*
+        //hashmap+stack
+        stack<int> stk;
+        unordered_map<int, int> mymap;
+        vector<int> ans;
+        for (int i = 0; i<nums2.size(); ++i){
+            while (!stk.empty() && nums2[i]>stk.top()){
+                mymap[stk.top()] = nums2[i];
+                stk.pop();
+            }
+            stk.push(nums2[i]);
+        }
+        while (!stk.empty()){
+            mymap[stk.top()] = -1;
+            stk.pop();
+        }
+        for (auto num : nums1){
+            ans.push_back(mymap[num]);
+        }
+        return ans;
+        */
+
+       
+        //hashmap
+        vector<int> ans;
+        unordered_map<int, int> mymap;
+        stack<int> stk;
+        int label = 0;
+        for(auto num : nums2){
+            mymap[num] = label;
+            label += 1;
+        }
+        for (int i = 0; i<nums1.size(); ++i){
+            for (int j = mymap[nums1[i]]; j<nums2.size(); ++j){
+                if (nums2[j] == nums1[i]) continue;
+                else{
+                    if (nums2[j]>nums1[i]){
+                        ans.push_back(nums2[j]);
+                        break;
+                    } 
+                    else continue;
+                }
+            }
+            if (ans.size() != i+1) ans.push_back(-1);    
+        }
+        return ans;
+    }
+};
+
+Java
+***********************************************************************
+方法一：单调栈
+我们可以忽略数组 nums1，先对将 nums2 中的每一个元素，求出其下一个更大的元素。随后对于将这些答案放入哈希映射（HashMap）中，再遍历数组 nums1，并直接找出答案。对于 nums2，我们可以使用单调栈来解决这个问题。
+
+我们首先把第一个元素 nums2[1] 放入栈，随后对于第二个元素 nums2[2]，如果 nums2[2] > nums2[1]，那么我们就找到了 nums2[1] 的下一个更大元素 nums2[2]，此时就可以把 nums2[1] 出栈并把 nums2[2] 入栈；如果 nums2[2] <= nums2[1]，我们就仅把 nums2[2] 入栈。对于第三个元素 nums2[3]，此时栈中有若干个元素，那么所有比 nums2[3] 小的元素都找到了下一个更大元素（即 nums2[3]），因此可以出栈，在这之后，我们将 nums2[3] 入栈，以此类推。
+
+可以发现，我们维护了一个单调栈，栈中的元素从栈顶到栈底是单调不降的。当我们遇到一个新的元素 nums2[i] 时，我们判断栈顶元素是否小于 nums2[i]，如果是，那么栈顶元素的下一个更大元素即为 nums2[i]，我们将栈顶元素出栈。重复这一操作，直到栈为空或者栈顶元素大于 nums2[i]。此时我们将 nums2[i] 入栈，保持栈的单调性，并对接下来的 nums2[i + 1], nums2[i + 2] ... 执行同样的操作。
+
+public class Solution {
+    public int[] nextGreaterElement(int[] findNums, int[] nums) {
+        Stack < Integer > stack = new Stack < > ();
+        HashMap < Integer, Integer > map = new HashMap < > ();
+        int[] res = new int[findNums.length];
+        for (int i = 0; i < nums.length; i++) {
+            while (!stack.empty() && nums[i] > stack.peek())
+                map.put(stack.pop(), nums[i]);
+            stack.push(nums[i]);
+        }
+        while (!stack.empty())
+            map.put(stack.pop(), -1);
+        for (int i = 0; i < findNums.length; i++) {
+            res[i] = map.get(findNums[i]);
+        }
+        return res;
+    }
+}
+复杂度分析
+
+时间复杂度：O(M+N)，其中 MM 和 N 分别是数组 nums1 和 nums2 的长度。
+
+空间复杂度：O(N)。我们在遍历 nums2 时，需要使用栈，以及哈希映射用来临时存储答案。
+
+方法二
+********
+可以使用动态规划。对于父数组nums2，我们可以构造一个等长度的next2数组。
+next2[i]表示父数组nums2[i]之后第一个大于nums2[i]的数的下标。
+我们可以通过动态规划来构造next2。假设next2和nums2的 长度为len2。
+
+当i==len2-1,显然next2[i] = -1，即next2最后一位之后没有数字,因此为-1;
+当0<=i<len2-1:
+i. 如果 nums2[i<nums2[i+1],刚好第i+1位比第i位大，next2[i] = i+1;
+ii. 如果 nums2[i]>nums2[i+1],说明在i+1,i+2...next2[i+1] - 1之间都不存在大于nums2[i]的数，因此递归判断：令j = next2[i+1],判断nums2[i]与nums2[j]的大小，若nums[i]大则继续令j = next2[j],递归终止条件为j==-1或者nums2[i]<nums2[j],次数无论j等于多少next2[i] = j;
+构造完next2数组之后,找到子数组nums1中下标为i的数在nums2中的下标j,若next2[j] == -1,则next1[i] = -1，否则next1[i] = nums2[next2[j]]。代码如下：
+
+class Solution {
+    public int[] nextGreaterElement(int[] nums1, int[] nums2) {
+        int len1 = nums1.length;
+        int len2 = nums2.length;
+        if(len1 == 0 || len2 ==0) return new int[0];
+        int[] next1 = new int[len1];
+        int[] next2 = new int[len2];
+        next2[len2-1] = -1;
+        for(int i = len2-2;i>=0; i--){
+            if(nums2[i] < nums2[i+1]) next2[i] = i+1;
+            else{
+                int next = next2[i+1];
+                while(next!=-1 && nums2[i] > nums2[next]) next= next2[next];
+                next2[i] = next;
+            }
+        }
+        for(int i = 0; i<len1;i++){
+            int cur = nums1[i];
+            int j = 0;
+            while(nums2[j] != cur) j++;
+            next1[i] = next2[j] == -1?-1:nums2[next2[j]];
+        }
+        return next1;
+    }
+}
+在企业中，如果父数组nums2拥有很多个子数组，构造next2能够极大提高效率。
+
+运行时间3ms,击败97.1%的用户，内存消耗39.3MB，击败了99.88%的用户。
+
+
+Python
+***********************************************************************************
+方法1——单调栈
+倒序遍历nums2，维护nums2中元素右边的数，如果空栈或者nums2的元素大于栈顶元素值，弹出直至寻找到大于该元素的值或者空栈为止，利用哈希记录下一个更大的值，然后将该元素压入栈中。因为nums1的元素是nums2的子集，因此，nums2求出以后，逐个哈希查找就可以了。
+
+代码
+
+class Solution:
+    def nextGreaterElement(self, nums1: List[int], nums2: List[int]) -> List[int]:
+        stack = []
+        Hash = {}
+        for i in range(len(nums2)-1, -1, -1):
+            x = nums2[i]
+            if not stack:
+                Hash[x] = -1
+            else:
+                while stack and x > stack[-1]:
+                    stack.pop()
+                Hash[x] = stack[-1] if stack else -1
+            stack.append(x)
+        
+        for j in range(len(nums1)):
+            nums1[j] = Hash[nums1[j]]
+        
+        return nums1
+复杂度分析
+时间复杂度：O(N)
+空间复杂度：O(N)
+
+方法2——暴力求解
+这题数据量小，暴力也能过
+
+代码
+
+class Solution:
+    def nextGreaterElement(self, nums1: List[int], nums2: List[int]) -> List[int]:
+        stack = []
+        n = len(nums1)
+        for i in range(n):
+            bigger = -2**31
+            while nums2[-1] != nums1[i]:
+                x = nums2.pop()
+                if x > nums1[i]:
+                    bigger = x
+                stack.append(x)
+            nums1[i] = bigger if bigger != -2**31 else -1
+            while stack:
+                nums2.append(stack.pop())
+        return nums1
+复杂度分析
+时间复杂度：O(N^2)
+空间复杂度：O(N)
+
+***********
+class Solution:
+    def nextGreaterElement(self, nums1: List[int], nums2: List[int]) -> List[int]:
+        """
+        方法一：先找到该元素在nums2中的位置，然后再找它之后比它大的
+        时间复杂度：O(n2)
+        """
+        # res = []
+        # for i in nums1:
+        #     flag = 0
+        #     bigger = -1
+        #     for j in nums2:
+        #         if i == j:
+        #             flag = 1
+        #         if flag == 1 and i < j:
+        #             bigger = j
+        #             break;
+        #     res.append(bigger)
+        # return res
+        """
+        方法二：从后往前找，遇到比它大的就更新，直到遇到它
+        时间复杂度：O(n2)
+        """
+        # res = []
+        # for i in nums1:
+        #     bigger = -1
+        #     for j in range(1,len(nums2)):
+        #         if nums2[-j] == i:
+        #             break
+        #         if nums2[-j] > i:
+        #             bigger = nums2[-j]
+        #     res.append(bigger)
+        # return res
+        """
+        方法三：为nums2维护一个字典，key为当前元素，value为该元素的下一个比其大的值
+        设置一个递减栈，当遇到更大的元素时，把栈里比他小的元素都放到字典中
+        查找时只需要在字典中找。时间复杂度O(n+m) 空间复杂度O(m)
+        """
+        hash_dict = dict()
+        stack = []
+        for i in nums2:
+            while stack and i > stack[-1]:
+                hash_dict[stack.pop()] = i
+            stack.append(i)
+        return [hash_dict.get(i,-1) for i in nums1]
+
+
+
