@@ -1,0 +1,302 @@
+给定一个循环数组（最后一个元素的下一个元素是数组的第一个元素），输出每个元素的下一个更大元素。数字 x 的下一个更大的元素是按数组遍历顺序，这个数字之后的第一个比它更大的数，这意味着你应该循环地搜索它的下一个更大的数。如果不存在，则输出 -1。
+
+示例 1:
+
+输入: [1,2,1]
+输出: [2,-1,2]
+解释: 第一个 1 的下一个更大的数是 2；
+数字 2 找不到下一个更大的数； 
+第二个 1 的下一个最大的数需要循环搜索，结果也是 2。
+注意: 输入数组的长度不会超过 10000。
+
+C++
+class Solution {
+public:
+    vector<int> nextGreaterElements(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> res(n);
+        stack<int> st;
+
+        for(int i=2*n-1; i>=0; i--){
+            while(!st.empty() && st.top()<=nums[i % n]){
+                st.pop();
+            }
+
+            res[i % n] = st.empty() ? -1 : st.top();
+            st.push(nums[i % n]);
+        }
+
+        return res;
+    }
+};
+
+C++
+****************************************************************
+方法一
+
+同样是 Next Greater Number，现在假设给你的数组是个环形的，如何处理？
+
+给你一个数组 [2,1,2,4,3][2,1,2,4,3]，你返回数组 [4,2,4,-1,4][4,2,4,−1,4]。拥有了环形属性，最后一个元素 3 绕了一圈后找到了比自己大的元素 44。
+
+
+
+首先，计算机的内存都是线性的，没有真正意义上的环形数组，但是我们可以模拟出环形数组的效果，一般是通过 \%% 运算符求模（余数），获得环形特效：
+
+
+int[] arr = {1,2,3,4,5};
+int n = arr.length, index = 0;
+while (true) {
+    print(arr[index % n]);
+    index++;
+}
+回到 Next Greater Number 的问题，增加了环形属性后，问题的难点在于：这个 Next 的意义不仅仅是当前元素的右边了，有可能出现在当前元素的左边（如上例）。
+
+明确问题，问题就已经解决了一半了。我们可以考虑这样的思路：将原始数组 “翻倍”，就是在后面再接一个原始数组，这样的话，按照之前“比身高”的流程，每个元素不仅可以比较自己右边的元素，而且也可以和左边的元素比较了。
+
+
+
+怎么实现呢？你当然可以把这个双倍长度的数组构造出来，然后套用算法模板。但是，我们可以不用构造新数组，而是利用循环数组的技巧来模拟。
+
+直接看代码吧：
+
+C++
+
+vector<int> nextGreaterElements(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> res(n); // 存放结果
+    stack<int> s;
+    // 假装这个数组长度翻倍了
+    for (int i = 2 * n - 1; i >= 0; i--) {
+        while (!s.empty() && s.top() <= nums[i % n])
+            s.pop();
+        res[i % n] = s.empty() ? -1 : s.top();
+        s.push(nums[i % n]);
+    }
+    return res;
+}
+至此，已经掌握了单调栈的设计方法及代码模板，学会了解决 Next Greater Number，并能够处理循环数组了。
+
+方法二
+将数组反向压入栈，其他不变
+
+class Solution {
+public:
+    vector<int> nextGreaterElements(vector<int>& nums) {
+        vector<int> ans(nums.size());
+        stack<int> s;
+        for(int i=nums.size()-1;i>=0;i--){
+            s.push(nums[i]);
+        }
+        for(int i=nums.size()-1;i>=0;i--){
+            while(!s.empty() && s.top()<=nums[i]){
+                s.pop();
+            }
+            ans[i]=s.empty()?-1:s.top();
+            s.push(nums[i]);
+        }
+        return ans;
+    }
+};
+
+方法三
+思路
+使用单调栈
+因为是循环，跑两圈总行了吧
+在栈里没弹出来的是数组中最大的
+初始化的时候直接 -1 ，就不用特殊处理他了
+答题
+
+vector<int> nextGreaterElements(vector<int>& nums) 
+{
+    vector<int> ans(nums.size(), -1);
+    stack<int> st;
+    for (int i = 0; i < nums.size() * 2; i++)
+    {
+        int j = i % nums.size();
+
+        while (!st.empty() && nums[st.top()] < nums[j])
+        {
+            ans[st.top()] = j;
+            st.pop();
+        }
+        st.push(j);
+    }
+
+    for (auto& n : ans)
+    {
+        n = (n == -1) ? -1 : nums[n];
+    }
+    return ans;
+}
+
+Java
+********************************************************
+方法一：单调栈
+我们可以使用单调栈来解决这个问题。
+
+我们首先把第一个元素 A[1] 放入栈，随后对于第二个元素 A[2]，如果 A[2] > A[1]，那么我们就找到了 A[1] 的下一个更大元素 A[2]，此时就可以把 A[1] 出栈并把 A[2] 入栈；如果 A[2] <= A[1]，我们就仅把 A[2] 入栈。对于第三个元素 A[3]，此时栈中有若干个元素，那么所有比 A[3] 小的元素都找到了下一个更大元素（即 A[3]），因此可以出栈，在这之后，我们将 A[3] 入栈，以此类推。
+
+可以发现，我们维护了一个单调栈，栈中的元素从栈顶到栈底是单调不降的。当我们遇到一个新的元素 A[i] 时，我们判断栈顶元素是否小于 A[i]，如果是，那么栈顶元素的下一个更大元素即为 A[i]，我们将栈顶元素出栈。重复这一操作，直到栈为空或者栈顶元素大于 A[i]。此时我们将 A[i] 入栈，保持栈的单调性，并对接下来的 A[i + 1], A[i + 2] ... 执行同样的操作。
+
+由于这道题的数组是循环数组，因此我们需要将每个元素都入栈两次。这样可能会有元素出栈找过一次，即得到了超过一个“下一个更大元素”，我们只需要保留第一个出栈的结果即可。
+
+
+public class Solution {
+    public int[] nextGreaterElements(int[] nums) {
+        int[] res = new int[nums.length];
+        Stack<Integer> stack = new Stack<>();
+        for (int i = 2 * nums.length - 1; i >= 0; --i) {
+            while (!stack.empty() && nums[stack.peek()] <= nums[i % nums.length]) {
+                stack.pop();
+            }
+            res[i % nums.length] = stack.empty() ? -1 : nums[stack.peek()];
+            stack.push(i % nums.length);
+        }
+        return res;
+    }
+}
+复杂度分析
+
+时间复杂度：O(N)。
+
+空间复杂度：O(N)。
+
+方法二  暴力搜索
+对于每一个元素，都向后进行nums.length长度的遍历。如果向后的下标超过了数组的长度，则对下标进行取模，这样每一个元素就都能都在题目中所叙的循环数组中找到是否有最大的下一个元素。
+
+public static int[] nextGreaterElements(int[] nums) {
+        // 构建用于记录结果的数组，初始化为-1
+        int res[] = new int[nums.length];
+        for (int i = 0; i < nums.length; i++) {
+            res[i] = -1;
+        }
+
+        for (int i = 0; i < nums.length; i++) {
+            // 对于每一个元素i，向后遍历num.lenght长度
+            int count = 0;
+            int j = i + 1;
+            while (count < nums.length) {
+                // 对下标进行取模操作
+                j = j % nums.length;
+                if (nums[j] > nums[i]) {
+                    res[i] = nums[j];
+                    break;
+                }
+                j++;
+                count++;
+            }
+        }
+        return res;
+    }
+
+方法三 栈
+1 构建一个栈，存储元素的下标，为什么存储下标，因为存储值，你无法知道在数组中的关系，则无法记录对应数组元素的结果。
+
+2 先遍历一遍数组，对于遍历的每一个元素，判断它是否比栈顶元素大：
+如果小，则入栈；
+如果大，则将栈顶元素出栈，栈顶元素对应的元素的下一个更大元素即是当前元素。
+出栈后再判断当前元素是否还比栈顶大，若是执行同样的操作，直到遇到比当前元素的大的元素，则将当前元素小标入栈。
+
+3 遍历完一边后，还有循环没有处理，即对于最后一个元素，它应该继续往后。因此需要继续从头遍历一遍，不过注意此时只有出栈操作，没有入栈操作了，因为实际上这次遍历并没有新的元素加入，而是实现循环遍历的效果。
+
+4 若最后栈中还有元素，则说明没有元素比他们大，则将对应的元素结果设为-1，表明没有找到。
+
+public static int[] nextGreaterElementsByStack(int[] nums) {
+        int res[] = new int[nums.length];
+        Stack<Integer> stack = new Stack<>();
+        for (int i = 0; i < nums.length; i++) {
+            while (!stack.empty() && nums[i] > nums[stack.peek()]) {
+                res[stack.pop()] = nums[i];
+            }
+            stack.push(i);
+        }
+        for (int i = 0; i < nums.length; i++) {
+            while (!stack.empty() && nums[i] > nums[stack.peek()]) {
+                res[stack.pop()] = nums[i];
+            }
+        }
+        while (!stack.isEmpty()) {
+            res[stack.pop()] = -1;
+        }
+        return res;
+    }
+
+Python
+******************************************************************************
+方法一
+解题思路
+第一个单调栈存储右侧元素，第二个单调栈存储左侧元素(代码中以倒序nums存在)，为什么这样做可行呢？
+因为若x>=stack2[i]，那么x必定为最大元素，此时它左侧的值再右侧存在一个更大的元素(至少x满足这一条件)；若x>=stack1[i]，那么x的下一个更大的元素一定在左侧或者不存在。
+
+class Solution:
+    def nextGreaterElements(self, nums: List[int]) -> List[int]:
+        stack1 = []
+        stack2 = nums[::-1]
+        result = [-1]*len(nums)
+        for i in range(len(nums)-1, -1, -1):
+            x = nums[i]
+            if not stack1:
+                while stack2 and x >= stack2[-1]:
+                    stack2.pop()
+                if stack2:
+                    result[i] = stack2[-1]
+            else:
+                while stack1 and x >= stack1[-1]:
+                    stack1.pop()
+                if stack1:
+                    result[i] = stack1[-1]
+                else:
+                    while stack2 and x >= stack2[-1]:
+                        stack2.pop()
+                    if stack2:
+                        result[i] = stack2[-1]
+            stack1.append(x)
+        
+        return result
+复杂度分析
+时间复杂度：O(N)
+空间复杂度：O(N)
+
+方法二
+单调栈的老题目了，有点不同就是这是个循环数组，关于循环数组的一个技巧就是*2取余了，见代码，注意想清楚栈内存储的是什么，是下标还是值 都是可以的
+
+
+class Solution:
+    def nextGreaterElements(self, nums: List[int]) -> List[int]:
+
+        if not nums:
+            return []
+        length = len(nums)
+
+        nums = nums+nums
+        result = [-1]*length
+        stack = [0]
+
+        for i in range(1,len(nums)):
+            while(stack and nums[stack[-1]]<nums[i]):
+                target = stack.pop()
+                result[target%length] = nums[i]
+            stack.append(i%length)
+        return result
+
+**********
+reference：
+https://leetcode-cn.com/problems/daily-temperatures/solution/leetcode-tu-jie-739mei-ri-wen-du-by-misterbooo/
+
+用上述思路遍历两次列表
+
+
+class Solution:
+    def nextGreaterElements(self, nums: List[int]) -> List[int]:
+        nums = nums + nums
+        stack = []
+        res = [-1] * len(nums)
+
+        for i in range(len(nums)):
+            while stack and nums[i] > nums[stack[-1]]:
+                small = stack.pop()
+                res[small] = nums[i]
+            stack.append(i)
+
+        return res[:len(res)//2]
+
