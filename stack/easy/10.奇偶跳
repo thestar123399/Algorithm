@@ -58,6 +58,72 @@
 
 C++
 ********************************************************************
+方法一
+思路
+转移方程
+dp[i][0] / dp[i][1] 代表i位置开始奇数/偶数跳跃能否跳到终点
+从末尾向前遍历
+dp[i][0] = dp[j][1] //奇数跳跃能否到达末尾取决于下一跳的偶数跳跃是否能到达末尾
+dp[i][1] = dp[j][0] //偶数跳跃能否到达末尾取决于下一跳的奇数跳跃是否能到达末尾
+如果没有满足要求的下一跳j，则dp[i][0/1] = false;
+最后dp[i][0]=true的个数即为作为起点可以跳到终点的数量
+
+找下一跳的位置
+使用set存储值和索引，logn内可找到下一跳索引位置
+直接使用lower_bound找到第一个>=A[i]的索引即为奇数跳跃的位置，前一个即为偶数跳跃的位置。
+例如：(注意是从后往前)
+
+1 2 3 1 1 3 3
+当查找A[2]的下一跳位置时，set内包含{<1,3>, <1,4>, <3,5>, <3,6>}
+使用lower_bound找到<3,5>为奇数跳跃的位置，前一个<1,4>即为<=A[i]的最大值
+但是偶数跳跃的位置需要取索引最小的位置，因此还需要往前遍历找到=1的最小索引
+
+class Solution {
+public:
+    int oddEvenJumps(vector<int>& A) {
+        int size = A.size();
+        vector<vector<bool>> dp(size,vector<bool>(2,false));
+
+        if(A.empty()) return 0;
+        if(size==1) return 1;
+
+        set<pair<int,int>> st;
+        
+        dp[size - 1][0] = dp[size - 1][1] = true;
+        st.insert(make_pair(A[size - 1], size - 1));
+
+        for(int i = size - 2; i >= 0; i--) {
+            //找到第一个>=A[i]的值,奇跳跃
+            auto it = st.lower_bound(make_pair(A[i],i)); 
+
+            dp[i][0] = it == st.end() ? false : dp[it->second][1];
+            
+            //找到第一个<=A[i]的值，偶跳跃
+            while(it == st.end() || (it != st.begin() && it->first > A[i])) {
+                it--;
+            }
+
+            //值有多个时，取索引最小的
+            int tmp = it->first;
+            if(it != st.begin()) {
+                it--;
+                while(it != st.begin() && it->first == tmp) it--; 
+                if(it->first != tmp) it++;
+            }
+
+            dp[i][1] = it->first > A[i] ? false : dp[it->second][0];
+
+            st.insert(make_pair(A[i],i));
+        }
+        
+        int ans = 0;
+        for(int i = 0; i < A.size(); i++) if(dp[i][0]) ans++;
+        return ans;
+    }
+};
+
+方法二
+
 解题思路
 假设dp[i][0/1]表示从A[i]开始，先进行 偶跳跃/奇跳跃 ，能否到达终点，则状态转移方程为：
 
