@@ -1,0 +1,663 @@
+使用栈实现队列的下列操作：
+
+push(x) -- 将一个元素放入队列的尾部。
+pop() -- 从队列首部移除元素。
+peek() -- 返回队列首部的元素。
+empty() -- 返回队列是否为空。
+ 
+
+示例:
+
+MyQueue queue = new MyQueue();
+
+queue.push(1);
+queue.push(2);  
+queue.peek();  // 返回 1
+queue.pop();   // 返回 1
+queue.empty(); // 返回 false
+ 
+
+说明:
+
+你只能使用标准的栈操作 -- 也就是只有 push to top, peek/pop from top, size, 和 is empty 操作是合法的。
+你所使用的语言也许不支持栈。你可以使用 list 或者 deque（双端队列）来模拟一个栈，只要是标准的栈操作即可。
+假设所有操作都是有效的 （例如，一个空的队列不会调用 pop 或者 peek 操作）。
+
+C++
+class MyQueue {
+private:
+    stack<int> st1;
+    stack<int> st2;
+    int firstNum;
+public:
+    /** Initialize your data structure here. */
+    MyQueue() {
+
+    }
+    
+    /** Push element x to the back of queue. */
+    void push(int x) {
+        if(st1.empty()) firstNum = x;
+
+        st1.push(x);
+    }
+    
+    /** Removes the element from in front of queue and returns that element. */
+    int pop() {
+        if(st2.empty()){
+            while(!st1.empty()){
+                st2.push(st1.top());
+                st1.pop();
+            }
+        }
+
+        int num = st2.top();
+        st2.pop();
+
+        return num;
+    }
+    
+    /** Get the front element. */
+    int peek() {
+        int n = this->pop();
+        st2.push(n);
+        return n;
+    }
+    
+    /** Returns whether the queue is empty. */
+    bool empty() {
+        return st1.empty() && st2.empty();
+    }
+};
+
+/**
+ * Your MyQueue object will be instantiated and called as such:
+ * MyQueue* obj = new MyQueue();
+ * obj->push(x);
+ * int param_2 = obj->pop();
+ * int param_3 = obj->peek();
+ * bool param_4 = obj->empty();
+ */
+ 
+ C++
+ *******************************************************
+ 方法一
+ ***********
+ 使用辅助栈：
+（顺序栈（Order）和逆序栈（Reverse），顺序栈top为队列的front，逆序栈为顺序栈的逆序）
+①若栈实现的队列为空，则插入逆序栈，再逆序栈元素pop到顺序栈
+（pop返回值为void，所以用top的值赋给顺序栈后，再pop）
+②若栈实现的队列非空，则先将顺序栈元素pop给逆序栈，再push元素x到逆序栈，
+再将逆序栈元素pop到顺序栈。（逆序栈pop后逆序栈为empty）
+
+class MyQueue {
+public:
+    // Initialize your data structure here.
+    MyQueue() {}
+    // Push element x to the back of queue. 
+    void push(int x) {
+        while (!order.empty()){   //将顺序栈元素出栈并压入逆序栈中
+            reverse.push(order.top());
+            order.pop();
+        }
+        reverse.push(x); 
+        while (!reverse.empty()) {  //把逆序栈元素出栈并压入顺序栈中，使得top=front
+            order.push(reverse.top());
+            reverse.pop();
+        }
+    }
+    // Removes the element from in front of queue and returns that element.
+    int pop() {
+        int data = order.top();
+        order.pop();
+        return data;
+    }
+    // Get the front element.
+    int peek() {
+        return order.top();
+    }
+    // Returns whether the queue is empty.
+    bool empty() {
+        return order.empty();
+    }
+private:
+    stack<int> order;   //top为queue的front
+    stack<int> reverse; //与order逆序
+};
+
+/**
+ * Your MyQueue object will be instantiated and called as such:
+ * MyQueue* obj = new MyQueue();
+ * obj->push(x);
+ * int param_2 = obj->pop();
+ * int param_3 = obj->peek();
+ * bool param_4 = obj->empty();
+ */
+
+方法二
+*******
+主要思路：
+入队时
+1.直接push到inStack中
+出队时
+1.如果outStack为空，先把inStack所有元素逐一弹出，push到outStack，最后弹出outStack的栈顶元素
+2.如果outStack不为空，直接弹出outStack的栈顶元素
+class MyQueue {
+public:
+    stack<int> inStack;
+    stack<int> outStack;
+    
+    MyQueue() {
+
+    }
+    
+    void push(int x) {
+        inStack.push(x);
+    }
+    
+    int pop() {
+        cheak();
+        int a=outStack.top();
+        outStack.pop();
+        return a;
+    }
+
+    int peek() {
+        cheak();
+        return outStack.top();
+    }
+    
+
+    bool empty() {
+        return inStack.empty()&&outStack.empty();
+    }
+
+    void cheak()
+    {
+        if(outStack.empty())
+        {
+            while(!inStack.empty())
+            {
+                outStack.push(inStack.top());
+                inStack.pop();
+            }
+
+        }
+    }
+};
+
+方法三
+**********
+思路
+这是一道模拟题，不涉及到具体算法，考察的就是对栈和队列的掌握程度。
+
+使用栈来模式队列的行为，如果仅仅用一个栈，是一定不行的，所以需要两个栈一个输入栈，一个输出栈，这里要注意输入栈和输出栈的关系。
+
+下面动画模拟以下队列的执行过程如下：
+
+执行语句：
+queue.push(1);
+queue.push(2);
+queue.pop(); 注意此时的输出栈的操作
+queue.push(3);
+queue.push(4);
+queue.pop();
+queue.pop();注意此时的输出栈的操作
+queue.pop();
+queue.empty();
+
+在push数据的时候，只要数据放进输入栈就好，但在pop的时候，操作就复杂一些，输出栈如果为空，就把进栈数据全部导入进来（注意是全部导入），再从出栈弹出数据，如果输出栈不为空，则直接从出栈弹出数据就可以了。
+
+最后如何判断队列为空呢？如果进栈和出栈都为空的话，说明模拟的队列为空了。
+
+在代码实现的时候，会发现pop() 和 peek()两个函数功能类似，代码实现上也是类似的，可以思考一下如何把代码抽象一下。
+
+class MyQueue {
+public:
+    stack<int> stIn;
+    stack<int> stOut;
+    /** Initialize your data structure here. */
+    MyQueue() {
+
+    }
+    /** Push element x to the back of queue. */
+    void push(int x) {
+        stIn.push(x);
+    }
+
+    /** Removes the element from in front of queue and returns that element. */
+    int pop() {
+        // 只有当stOut为空的时候，再从stIn里导入数据（导入stIn全部数据）
+        if (stOut.empty()) {
+            // 从stIn导入数据直到stIn为空
+            while(!stIn.empty()) {
+                stOut.push(stIn.top());
+                stIn.pop();
+            }
+        }
+        int result = stOut.top();
+        stOut.pop();
+        return result;
+    }
+
+    /** Get the front element. */
+    int peek() {
+        int res = this->pop(); // 直接使用已有的pop函数
+        stOut.push(res); // 因为pop函数弹出了元素res，所以再添加回去
+        return res;
+    }
+
+    /** Returns whether the queue is empty. */
+    bool empty() {
+        return stIn.empty() && stOut.empty();
+    }
+};
+
+
+方法四
+*******
+看过左程云大神的算法视频就知道很清晰的解题思路：
+两个栈：一个pushs栈，一个pops栈
+核心：
+
+pops栈中有元素时，pushs栈不能倒入元素
+pushs栈倒入元素时要一次性倒完
+因此专门写一个这样的函数表示这个过程
+
+class MyQueue {
+private:
+    stack<int> pushs,pops;//利用两个栈实现队列
+    //1.只有当pops栈中为空的时候，才可以将pushs栈中的元素倒入pops栈
+    //2.而且pushs栈要一次倒完
+    void push2pop()
+    {
+        if(pops.empty())
+        {
+            while(!pushs.empty())
+            {
+                pops.push(pushs.top());
+                pushs.pop();
+            }
+        }
+    }
+public:
+    MyQueue() {
+
+    }
+    
+    void push(int x) {
+        //直接压入
+        pushs.push(x);
+    }
+    
+    int pop() {
+        //如果pops中没有元素，就先把pushs中的元素依次弹出压入pops
+        push2pop();
+        //pops中已经有元素了,就直接获取pops的栈顶元素
+        int res = pops.top();
+        pops.pop();
+        return res;
+    }
+    
+    int peek() {
+        //如果pops中没有元素，就先把pushs中的元素依次弹出压入pops
+        push2pop();
+        //pops中已经有元素了,就直接获取pops的栈顶元素
+        int res = pops.top();
+        return res;
+    }
+    
+    bool empty() {
+        //只要有一个栈元素不为空，队列就不为空
+        return pushs.empty() && pops.empty();
+    }
+};
+
+Java
+********************************************************
+题解
+队列是一种 先进先出（first in - first out， FIFO）的数据结构，队列中的元素都从后端（rear）入队（push），从前端（front）出队（pop）。
+实现队列最直观的方法是用链表，但在这篇文章里我会介绍另一个方法 - 使用栈。
+栈是一种 后进先出（last in - first out， LIFO）的数据结构，栈中元素从栈顶（top）压入（push)，也从栈顶弹出（pop）。
+为了满足队列的 FIFO 的特性，我们需要用到两个栈，用它们其中一个来反转元素的入队顺序，用另一个来存储元素的最终顺序。
+
+方法一（使用两个栈 入队 - O(n)O(n)， 出队 - O(1)O(1)）
+***************************************************
+算法
+
+入队（push）
+
+一个队列是 FIFO 的，但一个栈是 LIFO 的。这就意味着最新压入的元素必须得放在栈底。为了实现这个目的，我们首先需要把 s1 中所有的元素移到 s2 中，接着把新元素压入 s2。最后把 s2 中所有的元素弹出，再把弹出的元素压入 s1。
+private int front;
+
+public void push(int x) {
+    if (s1.empty())
+        front = x;
+    while (!s1.isEmpty())
+        s2.push(s1.pop());
+    s2.push(x);
+    while (!s2.isEmpty())
+        s1.push(s2.pop());
+}
+
+复杂度分析
+
+时间复杂度：O(n)
+对于除了新元素之外的所有元素，它们都会被压入两次，弹出两次。新元素只被压入一次，弹出一次。这个过程产生了 4n + 2 次操作，其中 n 是队列的大小。由于 压入 操作和 弹出 操作的时间复杂度为 O(1)， 所以时间复杂度为 O(n)。
+
+空间复杂度：O(n)
+需要额外的内存来存储队列中的元素。
+
+出队（pop）
+
+直接从 s1 弹出就可以了，因为 s1 的栈顶元素就是队列的队首元素。同时我们把弹出之后 s1 的栈顶元素赋值给代表队首元素的 front 变量。
+
+// Removes the element from the front of queue.
+public void pop() {
+    s1.pop();
+    if (!s1.empty())
+        front = s1.peek();
+}
+复杂度分析
+
+时间复杂度：O(1)
+空间复杂度：O(1)
+判断空（empty）
+
+s1 存储了队列所有的元素，所以只需要检查 s1 的是否为空就可以了。
+
+Java
+
+// Return whether the queue is empty.
+public boolean empty() {
+    return s1.isEmpty();
+}
+时间复杂度：O(1)
+空间复杂度：O(1)
+
+取队首元素（peek）
+
+在我们的算法中，用了 front 变量来存储队首元素，在每次 入队 操作或者 出队 操作之后这个变量都会随之更新。
+
+Java
+
+// Get the front element.
+public int peek() {
+  return front;
+}
+时间复杂度：O(1)
+队首元素（front）已经被提前计算出来了，同时也只有 peek 操作可以得到它的值。
+
+空间复杂度：O(1)
+
+方法二（使用两个栈 入队 - O(1)，出队 - 摊还复杂度 O(1)
+*************************************************************
+算法
+
+入队（push）
+
+新元素总是压入 s1 的栈顶，同时我们会把 s1 中压入的第一个元素赋值给作为队首元素的 front 变量。
+private Stack<Integer> s1 = new Stack<>();
+private Stack<Integer> s2 = new Stack<>();
+
+// Push element x to the back of queue.
+public void push(int x) {
+    if (s1.empty())
+        front = x;
+    s1.push(x);
+}
+复杂度分析
+
+时间复杂度：O(1)
+向栈压入元素的时间复杂度为O(1)
+
+空间复杂度：O(n)
+需要额外的内存来存储队列元素
+
+出队（pop）
+
+根据栈 LIFO 的特性，s1 中第一个压入的元素在栈底。为了弹出 s1 的栈底元素，我们得把 s1 中所有的元素全部弹出，再把它们压入到另一个栈 s2 中，这个操作会让元素的入栈顺序反转过来。通过这样的方式，s1 中栈底元素就变成了 s2 的栈顶元素，这样就可以直接从 s2 将它弹出了。一旦 s2 变空了，我们只需把 s1 中的元素再一次转移到 s2 就可以了。
+
+// Removes the element from in front of queue.
+public void pop() {
+    if (s2.isEmpty()) {
+        while (!s1.isEmpty())
+            s2.push(s1.pop());
+    }
+    s2.pop();    
+}
+复杂度分析
+
+时间复杂度： 摊还复杂度 O(1)，最坏情况下的时间复杂度 O(n)
+在最坏情况下，s2 为空，算法需要从 s1 中弹出 n 个元素，然后再把这 n 个元素压入 s2，在这里nn代表队列的大小。这个过程产生了 2n 步操作，时间复杂度为 O(n)。但当 s2 非空时，算法就只有 O(1) 的时间复杂度。所以为什么叫做摊还复杂度 O(1) 呢？ 读了下一章你就知道了。
+
+空间复杂度 ：O(1)
+
+摊还分析
+
+摊还分析给出了所有操作的平均性能。摊还分析的核心在于，最坏情况下的操作一旦发生了一次，那么在未来很长一段时间都不会再次发生，这样就会均摊每次操作的代价。
+
+来看下面这个例子，从一个空队列开始，依次执行下面这些操作：
+
+push1,push2,…,pushn,pop1,pop2 …,popn
+
+ 
+
+单次 出队 操作最坏情况下的时间复杂度为 O(n)。考虑到我们要做 n 次出队操作，如果我们用最坏情况下的时间复杂度来计算的话，那么所有操作的时间复杂度为 O(n^2)。
+
+然而，在一系列的操作中，最坏情况不可能每次都发生，可能一些操作代价很小，另一些代价很高。因此，如果用传统的最坏情况分析，那么给出的时间复杂度是远远大于实际的复杂度的。例如，在一个动态数组里面只有一些插入操作需要花费线性的时间，而其余的一些插入操作只需花费常量的时间。
+
+在上面的例子中，出队 操作最多可以执行的次数跟它之前执行过 入队 操作的次数有关。虽然一次 出队 操作代价可能很大，但是每 n 次 入队 才能产生这么一次代价为 n 的 出队 操作。因此所有操作的总时间复杂度为：n(所有的入队操作产生） + 2 * n(第一次出队操作产生） + n - 1(剩下的出队操作产生）， 所以实际时间复杂度为 O(2*n)O(2∗n)。于是我们可以得到每次操作的平均时间复杂度为 O(2n/2n)O(2n/2n)=O(1)O(1)。
+
+判断空（empty）
+
+s1 和 s2 都存有队列的元素，所以只需要检查 s1 和 s2 是否都为空就可以了。
+
+Java
+
+// Return whether the queue is empty.
+public boolean empty() {
+    return s1.isEmpty() && s2.isEmpty();
+}
+时间复杂度：O(1)
+空间复杂度：O(1)
+
+取队首元素（peek)
+
+我们定义了 front 变量来保存队首元素，每次 入队 操作我们都会随之更新这个变量。当 s2 为空，front 变量就是对首元素，当 s2 非空，s2 的栈顶元素就是队首元素。
+
+Java
+
+// Get the front element.
+public int peek() {
+    if (!s2.isEmpty()) {
+        return s2.peek();
+    }
+    return front;
+}
+时间复杂度：O(1)
+队首元素要么是之前就被计算出来的，要么就是 s2 栈顶元素。因此时间复杂度为 O(1)。
+
+空间复杂度：O(1)
+
+方法二
+**************************************
+1.注重代码的规范性、完整性、鲁棒性。
+2.采用双栈实现队列，先将数字放入stackPush，然后pop到stackPop栈中，然后pop就是出队列的实现形式;
+3.注意两个思想:(1):stackPush中的数据必须一次性全部压入stackPop中;(2):如果stackPop栈不为空，绝不能将stackPush栈中的元素压入stackPop栈，例：stackPop有元素1,2,3，此时stackPush压入了4,5元素，只能Pop完1,2,3，才能Push 5,4元素;
+4.完结。
+
+// 两个栈实现队列
+class MyQueue {
+    Stack<Integer> stackPush;
+    Stack<Integer> stackPop;
+
+    /** Initialize your data structure here. */
+    public MyQueue() {
+        stackPush = new Stack<Integer>();
+        stackPop = new Stack<Integer>();
+    }
+
+    /** Push element x to the back of queue. */
+    public void push(int x) {
+        stackPush.push(x);
+    }
+
+    /** Removes the element from in front of queue and returns that element. */
+    public int pop() {
+        if (stackPop.isEmpty() && stackPush.isEmpty()) {
+            throw new RuntimeException("Queue is empty.");
+        } else {
+            if (stackPop.isEmpty()) {
+                while (!stackPush.isEmpty()) {
+                    stackPop.push(stackPush.pop());
+                }
+            }
+        }
+        return stackPop.pop();
+    }
+
+    /** Get the front element. */
+    public int peek() {
+        if (stackPush.isEmpty() && stackPop.isEmpty()) {
+            throw new RuntimeException("Queue is empyt.");
+        } else {
+            if (stackPop.isEmpty()) {
+                while (!stackPush.isEmpty()) {
+                    stackPop.push(stackPush.pop());
+                }
+            }
+        }
+        return stackPop.peek();
+    }
+
+    /** Returns whether the queue is empty. */
+    public boolean empty() {
+        return stackPop.isEmpty() && stackPush.isEmpty();
+    }
+}
+
+Python
+*********************************************
+方法一
+class MyQueue:
+
+    def __init__(self):
+        """
+        Initialize your data structure here.
+        """
+        self.A = []
+        self.B = []
+        
+    def push(self, x: int) -> None:
+        """
+        Push element x to the back of queue.
+        """
+        self.A.append(x)
+        
+
+    def pop(self) -> int:
+        """
+        Removes the element from in front of queue and returns that element.
+        """
+        if self.empty():
+            return
+        if len(self.B) == 0:
+            while len(self.A) != 0:
+                self.B.append(self.A.pop())
+            return self.B.pop()
+        else:
+            return self.B.pop()
+        
+    def peek(self) -> int:
+        """
+        Get the front element.
+        """
+        if self.empty():
+            return
+        if len(self.B) == 0:
+            while len(self.A) != 0:
+                self.B.append(self.A.pop())
+            return self.B[-1]
+        else:
+            return self.B[-1]
+
+    def empty(self) -> bool:
+        """
+        Returns whether the queue is empty.
+        """
+        if len(self.B)==0 and len(self.A)==0:
+            return True
+        else:
+            return False
+方法二
+思路：
+利用两个堆栈，一个叫输入栈，一个叫输出栈。用于实现进入队列Push(x)，出队列pop()，查看最后一个元素peek()，及判断是否为空empty()函数。每次从输入栈进，输出栈出。
+
+push操作：将加入的元素添加到输入栈；
+
+pop操作：从输出栈取走元素，输出栈没有元素时，将输入栈元素依次出栈压入输出栈，再从输出栈取出；
+
+peek操作：同pop操作原理一样；
+
+empty为真的条件是两个栈都为空。
+
+class MyQueue:
+
+    def __init__(self):
+        """
+        Initialize your data structure here.
+        """
+        self.stackin = []
+        self.stackout = []
+        
+        
+
+    def push(self, x: int) -> None:
+        """
+        Push element x to the back of queue.
+        """
+        self.stackin.append(x)
+
+    def pop(self) -> int:
+        """
+        Removes the element from in front of queue and returns that element.
+        """
+        if not self.stackout:
+            while self.stackin:
+                a = self.stackin.pop()
+                self.stackout.append(a)
+        return self.stackout.pop()
+
+    def peek(self) -> int:
+        """
+        Get the front element.
+        """
+        if not self.stackout:
+            while self.stackin:
+                a = self.stackin.pop()
+                self.stackout.append(a)
+        return self.stackout[-1]
+        
+
+    def empty(self) -> bool:
+        """
+        Returns whether the queue is empty.
+        """
+        if not self.stackin and not self.stackout:
+            return True
+        else:
+            return False
+
+
+# Your MyQueue object will be instantiated and called as such:
+# obj = MyQueue()
+# obj.push(x)
+# param_2 = obj.pop()
+# param_3 = obj.peek()
+# param_4 = obj.empty()
+
+
+
+
+
