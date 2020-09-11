@@ -1,0 +1,376 @@
+你现在是棒球比赛记录员。
+给定一个字符串列表，每个字符串可以是以下四种类型之一：
+1.整数（一轮的得分）：直接表示您在本轮中获得的积分数。
+2. "+"（一轮的得分）：表示本轮获得的得分是前两轮有效 回合得分的总和。
+3. "D"（一轮的得分）：表示本轮获得的得分是前一轮有效 回合得分的两倍。
+4. "C"（一个操作，这不是一个回合的分数）：表示您获得的最后一个有效 回合的分数是无效的，应该被移除。
+
+每一轮的操作都是永久性的，可能会对前一轮和后一轮产生影响。
+你需要返回你在所有回合中得分的总和。
+
+示例 1:
+
+输入: ["5","2","C","D","+"]
+输出: 30
+解释: 
+第1轮：你可以得到5分。总和是：5。
+第2轮：你可以得到2分。总和是：7。
+操作1：第2轮的数据无效。总和是：5。
+第3轮：你可以得到10分（第2轮的数据已被删除）。总数是：15。
+第4轮：你可以得到5 + 10 = 15分。总数是：30。
+示例 2:
+
+输入: ["5","-2","4","C","D","9","+","+"]
+输出: 27
+解释: 
+第1轮：你可以得到5分。总和是：5。
+第2轮：你可以得到-2分。总数是：3。
+第3轮：你可以得到4分。总和是：7。
+操作1：第3轮的数据无效。总数是：3。
+第4轮：你可以得到-4分（第三轮的数据已被删除）。总和是：-1。
+第5轮：你可以得到9分。总数是：8。
+第6轮：你可以得到-4 + 9 = 5分。总数是13。
+第7轮：你可以得到9 + 5 = 14分。总数是27。
+注意：
+
+输入列表的大小将介于1和1000之间。
+列表中的每个整数都将介于-30000和30000之间。
+
+C++
+class Solution {
+public:
+    int calPoints(vector<string>& ops) {
+        stack<pair<int,int>> st;
+        int size = ops.size();
+        int sum = 0;
+
+        for(int i = 0; i < size; i++){
+            if(ops[i] == "C"){
+                if(st.empty()) continue;
+
+                auto itC1 = st.top();
+                sum = itC1.second-itC1.first;
+                st.pop();
+            }
+            else if(ops[i] == "D"){
+                if(st.empty()) continue;
+
+                auto itD = st.top();
+                sum += itD.first*2;
+                st.push(make_pair(itD.first*2,sum));
+            }
+            else if(ops[i] == "+"){
+                if(st.empty()) continue;
+
+                auto it1 = st.top();
+                st.pop();
+                if(st.empty()) continue;
+                auto it2 = st.top();
+                st.pop();
+
+                st.push(it2);
+                st.push(it1);
+
+                sum += it1.first + it2.first;
+                st.push(make_pair(it1.first + it2.first,sum));
+            }
+            else{
+                int num = stoi(ops[i].c_str());
+                sum += num;
+                st.push(make_pair(num,sum));
+            }
+        } 
+         
+
+        return sum;
+    }
+};
+
+C++
+****************************************************
+方法一
+********
+class Solution {
+public:
+    int calPoints(vector<string>& ops) {
+        if(ops.size() == 0) return 0;
+        int ans = 0;
+        stack<int> s;
+        for (int i=0; i<ops.size(); ++i) {
+        if (ops[i] == "+") {
+            int top = s.top();
+            s.pop();
+            int newtop = top + s.top();
+            s.push(top);
+            s.push(newtop);
+        }
+        else if (ops[i] == "D")
+            s.push(s.top() * 2);
+        else if (ops[i] == "C"){
+            s.pop();
+        }
+        else s.push(stoi(ops[i]));
+        }
+        while(!s.empty()){
+            ans += s.top();
+            s.pop();
+        }
+        return ans;
+    }
+};
+
+方法二
+*******
+解题思路：分四种情况：前两轮之和、上一轮两倍、删除上轮、输入本轮得分。此处有个技巧，第四种难写判断条件，可放到最后一个else后面。整体难度较低。
+int calPoints(vector<string>& ops) {
+        int res = 0,addscr = 0,lastscr = 0;
+            stack<int> points;
+        for(auto itm : ops)
+        {
+            if(itm == "+")
+            {
+                lastscr = points.top();
+                points.pop();
+                addscr = lastscr + points.top();
+                points.push(lastscr);
+                points.push(addscr);
+            }
+            else if(itm == "D")
+            {
+                points.push(points.top() * 2);
+            }
+           else if(itm == "C")
+            {
+                points.pop();
+            }
+            else    
+            {
+                points.push(atoi(itm.c_str()));
+            }
+        }
+        while(!points.empty())
+        {
+            res  += points.top(); 
+            points.pop();
+        }
+        return res;
+    }
+
+方法三
+********
+class Solution {
+public:
+    int calPoints(vector<string>& ops) {
+        if(ops.empty()) return 0;
+        stack<int> res;//存放每一轮的得分
+        int result=0;//存放获得总分
+        for(int i=0;i<ops.size();i++)
+        {
+            const char *p=ops[i].data();//将字符串转成字符，原因switch只接收整型或枚举类型
+            switch(*p)
+            {
+                case'+'://得分是前两轮有效 回合得分的总和。
+                {
+                    if(res.empty())
+                        res.push(0);
+                    else if(res.size()==1)
+                        res.push(res.top());
+                    else
+                    {
+                        int temp=res.top();
+                        res.pop();
+                        int sumt=res.top()+temp;
+                        res.push(temp);
+                        res.push(sumt);
+                    }
+                    result+=res.top();
+                    continue;
+                }
+                case'D'://得分是前一轮有效 回合得分的两倍。
+                {
+                    if(res.empty())
+                        res.push(0);
+                    else 
+                    {
+                        res.push(2*res.top());
+                        result+=res.top();
+                    }
+                    continue;
+                }
+                case'C'://最后一个有效 回合的分数是无效的
+                {
+                    if(res.empty())
+                        continue;
+                    else 
+                    {
+                        result-=res.top();
+                        res.pop();
+                    }
+                    continue;
+                }
+                default://获取到数字
+                {
+                    stringstream ss(ops[i]);
+                    int t; 
+                    ss>>t;
+                    res.push(t); 
+                    result+=res.top();
+                }
+            }
+        }
+        return result;
+    }
+};
+
+方法四
+********
+class Solution {
+public:
+    int calPoints(vector<string>& ops) {
+        int index = 0;
+        vector<int> stack;
+        for (int i = 0; i < ops.size(); ++i) {
+            int tmp;
+            if (ops[i] == "C") {
+                stack.pop_back();
+                --index;
+            }
+            else {
+                if (ops[i] == "+")tmp = stack[index - 1] + stack[index - 2];
+                else if (ops[i] == "D")tmp = stack[index - 1] * 2;
+                else tmp = stoi(ops[i]);
+                stack.push_back(tmp);
+                ++index;
+            }
+        }
+        int res = 0;
+        for (auto st : stack) res += st;
+
+        return res;
+    }
+};
+
+Java
+***************************************************************************
+方法一：栈
+思路与算法
+
+让我们在处理数据时保持栈上每个有效回合的值。栈是理想的，因为我们只处理涉及最后或倒数第二轮的操作。
+
+class Solution {
+    public int calPoints(String[] ops) {
+        Stack<Integer> stack = new Stack();
+
+        for(String op : ops) {
+            if (op.equals("+")) {
+                int top = stack.pop();
+                int newtop = top + stack.peek();
+                stack.push(top);
+                stack.push(newtop);
+            } else if (op.equals("C")) {
+                stack.pop();
+            } else if (op.equals("D")) {
+                stack.push(2 * stack.peek());
+            } else {
+                stack.push(Integer.valueOf(op));
+            }
+        }
+
+        int ans = 0;
+        for(int score : stack) ans += score;
+        return ans;
+    }
+}
+复杂度分析
+
+复杂度分析：O(N)，其中 NN 是 ops 的长度。我们解析给定数组中的每个元素，然后每个元素执行 O(1) 的工作。
+
+空间复杂度：O(N)，用于存储 stack 的空间。
+
+方法二
+class Solution {
+  public int calPoints(String[] ops) {
+        if (ops.length == 0) {
+            return -1;
+        }
+        Integer a, b;
+        Stack<Integer> stack = new Stack<>();
+        for (String s : ops) {
+            switch (s) {
+                case "+":
+                    b = stack.pop();
+                    a = stack.peek();
+                    stack.push(b);
+                    stack.push(a+b);
+                    break;
+                case "D":
+                    b = stack.peek();
+                    stack.push(b * 2);
+                    break;
+                case "C":
+                    stack.pop();
+                    break;
+                default:
+                    stack.push(Integer.valueOf(s));
+                    break;
+            }
+        }
+        int sum = 0;
+        while (!stack.empty()) {
+            sum += stack.pop();
+        }
+        return sum;
+    }
+}
+
+
+Python
+***********************************************************************
+解题思路
+读题一小时，变成编程一分钟。
+题目中只给出四种情况：
+
+数字，就是本轮得分
++，就是本轮得分是前两轮相加
+D，就是本轮得分是前一轮的两倍
+C，删掉最后一轮得分
+除了C是操作以外，其他均是当前该轮的得分，也就是可以把+、D都当成数值的。
+那么问题变成：
+遇到数值，就放入到新的stack中，如果遇到C，就pop最后一个数值。
+
+代码
+
+class Solution:
+    def calPoints(self, ops: List[str]) -> int:
+        res = []
+        for op in ops:
+            if op == 'C':
+                res.pop()
+            elif op == '+':
+                res.append(res[-1] + res[-2])
+            elif op == 'D':
+                res.append(res[-1]*2)
+            else:
+                res.append(int(op))
+        
+        return sum(res)
+
+或者
+class Solution:
+    def calPoints(self, ops: List[str]) -> int:
+        stack = []
+        for op in ops:
+            if op == '+':
+                stack.append(stack[-1]+stack[-2])
+            elif op == 'D':
+                stack.append(2*stack[-1])
+            elif op == 'C':
+                stack.pop()
+            else:
+                stack.append(int(op))
+        return sum(stack)
+
+
+
+
+
