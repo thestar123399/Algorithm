@@ -1,0 +1,661 @@
+给你一份工作时间表 hours，上面记录着某一位员工每天的工作小时数。
+
+我们认为当员工一天中的工作小时数大于 8 小时的时候，那么这一天就是「劳累的一天」。
+
+所谓「表现良好的时间段」，意味在这段时间内，「劳累的天数」是严格 大于「不劳累的天数」。
+
+请你返回「表现良好时间段」的最大长度。
+
+ 
+
+示例 1：
+
+输入：hours = [9,9,6,0,6,6,9]
+输出：3
+解释：最长的表现良好时间段是 [9,9,6]。
+ 
+
+提示：
+
+1 <= hours.length <= 10000
+0 <= hours[i] <= 16
+
+C++
+class Solution {
+public:
+    int longestWPI(vector<int>& hours) {
+        stack<int> st;
+        int size = hours.size();
+        vector<int> state;
+        int res = 0;
+        
+        for(int i = 0; i < size; i++){
+            if(hours[i] > 8) state.push_back(1);
+            else state.push_back(-1);
+        }
+
+        vector<int> preSum(size+1,0);
+        for(int j = 0; j < size; j++){
+            preSum[j+1] = preSum[j] + state[j];
+        }
+
+        st.push(0);
+        for(int m = 0; m <= size; m++){
+            while(preSum[m] < preSum[st.top()]){
+                st.push(m);
+            }
+        }
+
+        for(int n = size; n >= 0; n--){
+            while(!st.empty() && preSum[n] > preSum[st.top()]){
+                res = max(res,n - st.top());
+                st.pop();
+            }
+        }
+
+        return res;
+    }
+};
+
+C++
+*********************************************************************************
+1.暴力破解
+
+class Solution {
+public:
+    int longestWPI(vector<int>& hours) {
+        int n = hours.size();
+        int res = 0;
+        vector<int> sum(n+1,0);
+        
+        for(int i = 0;i < n; ++i){
+            sum[i+1] = sum[i] + (hours[i] > 8?1:(-1));
+            for(int j = 0;j <= i; ++j){
+                if(sum[i+1] - sum[j] > 0){
+                    res = max(res,i+1-j);
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+};
+2.二分查找
+
+class Solution {
+public:
+    int longestWPI(vector<int>& hours) {
+        int n = hours.size();
+        int res = 0;
+        vector<int> sum(n+1,0);
+        vector<int> prefix(n+1,0);
+        
+        for(int i = 0;i < n; ++i){
+            sum[i+1] = sum[i] + (hours[i] > 8?1:(-1));
+        }
+        /*intial*/
+        int mx = 0;
+        for(int i = 1; i <= n; ++i){
+            mx = min(sum[i],mx);
+            prefix[i] = mx;
+        }
+        
+        for(int i = 1;i <= n; ++i){
+           int l = 0;
+           int r = i-1;
+           while(l <= r){
+               int mid = l+(r-l)/2;
+               if(prefix[mid] >= sum[i]){
+                   l = mid + 1;
+               }else{
+                   r = mid - 1;
+               }
+           }
+           res = max(res,i-(r+1));
+        }
+        
+        return res;
+    }
+};
+3.最快解法
+
+class Solution {
+public:
+    int longestWPI(vector<int>& hours) {
+        int n = hours.size();
+        int res = 0;
+        vector<int> sum(n+1,0);
+        unordered_map<int,int> seen;
+        
+        for(int i = 0;i < n; ++i){
+            sum[i+1] = sum[i] + (hours[i] > 8?1:(-1));
+            if(sum[i+1] > 0){
+                res = max(res,i+1);
+            }else{
+                if(seen.count(sum[i+1]-1)){
+                    res = max(res,i-seen[sum[i+1]-1]);
+                }
+            }
+            
+            if(!seen.count(sum[i+1])){
+                seen[sum[i+1]] = i;
+            }
+        }        
+        
+        return res;
+    }
+};
+
+
+4.前缀和+hash的方法
+class Solution {
+    public int longestWPI(int[] hours) {
+        int []pre_sum=new int[hours.length+1];
+        pre_sum[0]=0;
+        int res=0;
+        // 初始化前缀和数组 pre_sum[i]表示长度为i的数组的前缀和
+        for(int i=1;i<=hours.length;i++){
+            pre_sum[i]=pre_sum[i-1]+(hours[i-1]>8?1:-1);
+            /* 1.考虑[0:i-1]是最长序列  res是满足sum[0:i-1]>0的最长序列长度 */
+            if(pre_sum[i]>0){
+                res=i;
+            }
+
+        }
+        //System.out.println(Arrays.toString(pre_sum));
+       
+        HashMap<Integer,Integer> map=new HashMap<>();
+        /* 记录第一次出现pre_sum[i]的索引i 即 使得前缀和是pre_sum[i]的最小索引 */
+        for(int i=0;i<=hours.length;i++){
+            if(pre_sum[i]<0&&!map.containsKey(pre_sum[i])){
+                map.put(pre_sum[i],i);
+            }
+        }
+        /*
+        2.考虑[i:j]是最长序列 此时只需考虑pre_sum[j]<=0的情况
+        在区间[0,j）中找一个i，使sum[i:j]>0且i尽可能小。
+        推论1：pre_sum[i+1]<pre_sum[j+1]<=0。
+        推论2：如果存在-(a+1),那么-a一定存在且-a一定会出现在-(a+1)之前      
+        根据推论，pre_sum[i+1]是小于pre_sum[j+1]的最大的负数，只能等于pre_sum[j+1]-1
+        */
+        for(int j=0;j<hours.length;j++){
+            if(pre_sum[j]<=0&&map.containsKey(pre_sum[j+1]-1)){
+                int i=map.get(pre_sum[j+1]-1);
+                //System.out.println("i:"+i+" j:"+j);
+                if(i<=j){
+                    res=Math.max(j-i+1,res);
+                }
+            }
+        }
+        return res;
+       
+
+    }
+}
+
+
+5.hash map保存之前的最早位置
+class Solution {
+public:
+    int longestWPI(vector<int>& hours) {
+        unordered_map<int,int> mp;
+        int n = hours.size(), ans = 0, count = 0;
+        for (int i = 0; i < n; i++) {
+            if(hours[i] > 8) count++;
+            else count--;
+
+            if(!mp.count(count)) mp[count] = i;
+            
+            if(count > 0) ans = i + 1;
+            else if(mp.count(count-1)) ans = max(ans, i - mp[count-1]);
+        }
+        return ans;
+    }
+};
+
+
+解题思路
+前缀和+单调栈，56ms、21.5MB，82%、89%
+
+前缀和存储今天之前劳累的天数
+利用单调递减栈求前缀和数组的最大跨度
+代码
+
+class Solution {
+public:
+    int longestWPI(vector<int>& hours) {
+        //前缀和(存储今天之前劳累的天数) + 单调栈(求前缀和的最大跨度)
+        stack<int> stk;
+        int res = 0, n = hours.size();
+        vector<int> sum(n + 1, 0);
+        for(int i = 0; i < n; i++){
+            sum[i + 1] = sum[i] + (hours[i] > 8 ? 1 : -1);
+            if(stk.empty() || sum[i] < sum[stk.top()]) stk.push(i);
+        }
+        for(int i = n; i >= 0; i--){
+            while(!stk.empty() && sum[i] > sum[stk.top()]){
+                res = max(res, i - stk.top());
+                stk.pop();
+            }
+        }
+        return res;
+    }
+};
+
+
+Java
+************************************************************************
+
+
+1.暴力法
+
+public int longestWPI(int[] hours) {
+        int n = hours.length;
+        for(int i = 0; i < n; i++){
+            hours[i] = hours[i] > 8 ? 1 : -1;
+        }
+        int res = 0;
+        for(int i = 0; i < n; i++){
+            int count = 0;
+            for(int j = i; j < n; j++){
+                count += hours[j];
+                if(count > 0)
+                    res = Math.max(res, j - i + 1);
+            }
+            if(n - i <= res)
+                return res;
+        }
+        return res;
+    }
+思路分析：
+
+工作时间大于8则属于劳累的一天，否则属于悠闲一天。对于数组的每个元素，只有两种状态，劳累or悠闲。要知道劳累的天数多还是优先天数多，就可以用1表示当天劳累，-1表示当天优先。对于天数区间[i,j]，累加值为正，说明劳累天数更多。
+所以可以先将工作天数转化为用1，-1表示状态的数组for(int i = 0; i < n; i++) hours[i] = hours[i] > 8 ? 1 : -1;
+然后进行二重循环，对于每一个天数区间[i,j]，计算这个区间的累加和count += hours[j];，如果大于0则更新「表现良好时间段」的最大长度。res = Math.max(res, j - i + 1);
+循环中如果发现[i, n - 1]的长度小于等于res，那么在这个范围内的所有区间都不会产生更长的表现良好时间段，就直接返回res。
+时间复杂度为O(n^2)，空间复杂度为O(1)。
+运行结果：
+
+执行用时 :326 ms, 在所有 Java 提交中击败了31.59%的用户
+内存消耗 :42.4 MB, 在所有 Java 提交中击败了5.61%的用户
+
+
+2.哈希表记录前缀和的索引
+
+public int longestWPI2(int[] hours) {
+        int sum = 0;
+        int res = 0;
+        Map<Integer, Integer> sumToIndex = new HashMap<>();
+        for(int i = 0; i < hours.length; i++){
+            int temp = hours[i] > 8 ? 1 : -1;
+            sum += temp;
+            if(sum > 0)
+                res = i + 1;
+            else {
+                if(!sumToIndex.containsKey(sum))
+                    sumToIndex.put(sum, i);
+                if(sumToIndex.containsKey(sum - 1))
+                    res = Math.max(res, i - sumToIndex.get(sum - 1));
+            }
+        }
+        return res;
+    }
+思路分析：
+
+同方法一中用1表示当天劳累，-1表示当前悠闲。
+其实方法一中我们计算天数需要的仅仅是知道该区间上累加和大于0，以及区间的左右边界。我们在累加中，使用sum[i]表示[0,i]的累加和。如果sum[j] - sum[i] > 0，说明[i + 1, j]是劳累天数更多，这是一个表现良好时间段。我们可以在计算累加和的过程中记录累加和的值对应的索引信息，但是累加和可能会重复，使用哈希表记录时为了避免覆盖出差，就需要仔细考虑什么时候该记录，什么时候不需要记录。
+如果sum[i] > 0，说明从0到i这一天，是表现良好时间段。累加到i的过程中，这个区间一定是目前最长的良好时间段，所以res = i + 1。在这个前提下，如果后序sum[j] - sum[i] > 0，说明sum[j] > 0且j > i ，那么区间[0,j]的长度大于[0,i]，直接更新res = j + 1就可以。所以累加和为正的索引不需要记录，因为左边界固定为0，直接更新就可以。
+如果sum[i] <= 0，是否就需要记录呢？如果有x < i且sum[x] == sum[i]，那么再往后如果有sum[j] - sum[i] > 0，也一定会有sum[j] - sum[x] > 0，且区间长度是[x,j]大于[i,j]，所以i这个信息是没有意义的，因为答案一定不是[i,j]。所以当sum[i] <= 0时，只记录第一次出现该值的索引。所以要先判断，如果!sumToIndex.containsKey(sum)，才记录前缀和的值及对应的索引 sumToIndex.put(sum, i);
+另一个关键点如果sum[i] <= 0，要去查看是否有x < i，且sum[i] - sum[x] > 0，这样的区间是满足题意的时间段，但是这样的区间不止一个，要找最长的一个。其实最长的一个就是sum[i] - sum[x] == 1的[x, i]。理由如下
+假设sum[i] = -1，如果sum[i] - sum[y] == 2，那么sum[y] = -3。
+我们记录的是某个累加和第一次出现的索引，如果要能累加得到sum[y] = -3，前面一定会先出现sum[x] = -2（不然怎么可能靠每次-1得到-3），那此时区间[x, i]长度肯定大于[y, i]。
+所以sum[i] - sum[x] == 1，就是能满足sum[i] - sum[x] > 0的最长区间。
+所以if(sumToIndex.containsKey(sum - 1))，就更新res = Math.max(res, i - sumToIndex.get(sum - 1));
+遍历完一次后，返回res，时间复杂度为O(n)，空间复杂度取决于哈希表中的元素的个数。
+当然这个题中，题目的题设hours.length <= 10000，前缀和最小为-10000，所以也可以用数组代替哈希表，索引为键表示sum + 10000，值则为前缀和数组的索引。
+
+3.单调栈
+
+class Solution {
+    public int longestWPI(int[] hours) {
+        for (int i = 0; i < hours.length; i++) {
+                hours[i] = hours[i]>8?1:-1;
+        }
+        int[] score =new int[hours.length+1];score[0]=0;
+        for (int i = 1; i < score.length; i++) {
+            score[i]=score[i-1]+hours[i-1];
+        }
+        //递减栈
+        Stack<Integer> stack =new Stack<>();
+        for (int i = 0; i < score.length; i++) {
+            if(!stack.empty()&&score[stack.peek()]<=score[i])
+                continue;
+            stack.push(i);
+        }
+        int ans = 0;
+        for (int i = score.length-1; i >= 0; i--) {
+            if(score[i]>score[stack.peek()]){
+                ans=Math.max(ans,i-stack.peek());
+                stack.pop();i++;
+                if(stack.empty()) break;
+                continue;
+            }
+        }
+        return ans;
+    } 
+}
+
+
+4.前缀和+单调栈 花了好久才搞懂~
+
+思路在 https://www.jianshu.com/p/c548dbae322d
+public int longestWPI(int[] hours) {
+        int max = 0;
+        Stack<Integer> stack = new Stack<>();
+        int[] prefixSrc = new int[hours.length + 1];
+        //大于8的置为1，否则置为-1
+        for (int i = 0; i < hours.length; i++) {
+            if (hours[i] > 8) {
+                max = 1;
+                hours[i] = 1;
+            } else {
+                hours[i] = -1;
+            }
+            //初始化前缀和数组
+            prefixSrc[0] = 0;
+            prefixSrc[i + 1] = prefixSrc[i] + hours[i];
+        }
+        for (int i = 0; i < prefixSrc.length - 1; i++) {
+            //实现单调栈
+            if (stack.isEmpty()) {
+                stack.push(i);
+            } else {
+                if (prefixSrc[i] < prefixSrc[stack.peek()]) {
+                    stack.push(i);
+                }
+            }
+        }
+        //开始寻找,从后往前遍历
+        for (int i = prefixSrc.length - 1; i >= 0; i--) {
+            int last = i;
+            while (!stack.isEmpty() && prefixSrc[i] > prefixSrc[stack.peek()]) {
+                last = stack.pop();
+            }
+            if (last != i) {
+                int width = i - last;
+                max = max > width ? max : width;
+            }
+        }
+        return max;
+    }
+
+
+
+
+5.前缀和+hash的方法
+
+
+
+class Solution {
+    public int longestWPI(int[] hours) {
+        int []pre_sum=new int[hours.length+1];
+        pre_sum[0]=0;
+        int res=0;
+        // 初始化前缀和数组 pre_sum[i]表示长度为i的数组的前缀和
+        for(int i=1;i<=hours.length;i++){
+            pre_sum[i]=pre_sum[i-1]+(hours[i-1]>8?1:-1);
+            /* 1.考虑[0:i-1]是最长序列  res是满足sum[0:i-1]>0的最长序列长度 */
+            if(pre_sum[i]>0){
+                res=i;
+            }
+
+        }
+        //System.out.println(Arrays.toString(pre_sum));
+       
+        HashMap<Integer,Integer> map=new HashMap<>();
+        /* 记录第一次出现pre_sum[i]的索引i 即 使得前缀和是pre_sum[i]的最小索引 */
+        for(int i=0;i<=hours.length;i++){
+            if(pre_sum[i]<0&&!map.containsKey(pre_sum[i])){
+                map.put(pre_sum[i],i);
+            }
+        }
+        /*
+        2.考虑[i:j]是最长序列 此时只需考虑pre_sum[j]<=0的情况
+        在区间[0,j）中找一个i，使sum[i:j]>0且i尽可能小。
+        推论1：pre_sum[i+1]<pre_sum[j+1]<=0。
+        推论2：如果存在-(a+1),那么-a一定存在且-a一定会出现在-(a+1)之前      
+        根据推论，pre_sum[i+1]是小于pre_sum[j+1]的最大的负数，只能等于pre_sum[j+1]-1
+        */
+        for(int j=0;j<hours.length;j++){
+            if(pre_sum[j]<=0&&map.containsKey(pre_sum[j+1]-1)){
+                int i=map.get(pre_sum[j+1]-1);
+                //System.out.println("i:"+i+" j:"+j);
+                if(i<=j){
+                    res=Math.max(j-i+1,res);
+                }
+            }
+        }
+        return res;
+       
+
+    }
+}
+
+
+
+
+
+
+
+
+Python
+***********************************************************************
+
+1.思路：
+
+本题有多种方法，暴力的方法时间复杂度是 O(N^2)，用二分法可以将时间复杂度降为 O(NlogN) ，下面介绍用单调栈可以实现 O(N) 时间复杂度的方法。其实本题变形后与 962. 最大宽度坡 类似。
+
+以输入样例 hours = [9,9,6,0,6,6,9] 为例，我们将大于 88 小时的一天记为 11 分，小于等于 88 小时的一天记为 -1−1 分。那么处理后，我们得到 score = [1, 1, -1, -1, -1, -1, 1]，然后我们对得分数组计算前缀和 presum = [0, 1, 2, 1, 0, -1, -2, -1]。题目要求返回表现良好时间段的最大长度，即求最长的一段中，得分 11 的个数大于得分 -1−1 的个数，也就是求 score 数组中最长的一段子数组，其和大于 00，那么也就是找出前缀和数组 presum 中两个索引 i 和 j，使 j - i 最大，且保证 presum[j] - presum[i] 大于 00。到此，我们就将这道题转化为，求 presum 数组中的一个最长的上坡，可以用单调栈实现。我们维护一个单调栈，其中存储 presum 中的元素索引，栈中索引指向的元素严格单调递减，由 presum 数组求得单调栈为 stack = [0, 5, 6]， 其表示元素为 [0, -1, -2]。然后我们从后往前遍历 presum 数组，与栈顶索引指向元素比较，如果相减结果大于 00，则一直出栈，直到不大于 00 为止，然后更新当前最大宽度。
+
+
+class Solution:
+    def longestWPI(self, hours: List[int]) -> int:
+        n = len(hours)
+        # 大于8小时计1分 小于等于8小时计-1分
+        score = [0] * n
+        for i in range(n):
+            if hours[i] > 8:
+                score[i] = 1
+            else:
+                score[i] = -1
+        # 前缀和
+        presum = [0] * (n + 1)
+        for i in range(1, n + 1):
+            presum[i] = presum[i - 1] + score[i - 1]
+        ans = 0
+        stack = []
+        # 顺序生成单调栈，栈中元素从第一个元素开始严格单调递减，最后一个元素肯定是数组中的最小元素所在位置
+        for i in range(n + 1):
+            if not stack or presum[stack[-1]] > presum[i]:
+                stack.append(i)
+        # 倒序扫描数组，求最大长度坡
+        i = n
+        while i > ans:
+            while stack and presum[stack[-1]] < presum[i]:
+                ans = max(ans, i - stack[-1])
+                stack.pop()
+            i -= 1
+        return ans
+        
+2.单调栈，转换为上坡路问题
+解题思路
+参考点赞数最多的大佬：前缀和+单调栈 Python3写的注解，转换为上坡路问题理解更简单
+class Solution:
+    def longestWPI(self, hours: List[int]) -> int:
+        length = len(hours)
+        """ 
+        将最初的时间转化为是否是劳累的一天存储于数组score中（劳累记为1，不劳累记为-1）
+        原问题转化为寻找连续和 >0 的最长子串长度
+        """
+        score = [0] * length
+        for i in range(length):
+            if hours[i] > 8:
+                score[i] = 1
+            else:score[i] = -1
+        
+        """
+        计算前缀和，通过前缀和的差值来判断是否是良好的表现时间段
+        问题转化为：寻找一对i,j;使presum[j] > presum[i],并且j-i最大，即转化为求最长上坡路问题
+        """
+        presum = [0] * (length + 1)
+        for i in range(1,length + 1):
+            presum[i] = presum[i - 1] + score[i - 1]
+
+        """
+        用单调递减栈存储presum中的元素的位置，如果理解为上坡问题的话，单调栈中维护的元素从底到顶高度依次降低，
+        即越来越深入谷底，遍历完成后的栈顶位置的元素即所有元素中谷底的高度
+        """
+        stack = []
+        for i in range(length + 1):
+            if not stack or presum[i] < presum[stack[-1]]:
+                stack.append(i)      
+
+        """
+        从尾部遍历presum，如果该位置元素比stack中存储的位置的元素高，则表明为上坡路，弹出栈顶元素，并记录坐标差，
+        该坐标差即为上坡路的长度
+        """
+        ans = 0
+        for i in range(length , -1, -1):
+            while stack and presum[i] > presum[stack[-1]]:
+                ans = max(ans,i - stack[-1])
+                stack.pop()
+        return ans
+
+
+        
+
+详细的解题思路
+*********************************
+1.观察到题目中给出数组中的元素有且只有两种,分别是大于8和小于等于8,而具体的数值没有意义.所以简单起见,我们用1代表大于8的元素,用-1代表小于等于8的元素,得到一个数组[1,1,-1,-1,-1,-1,1]记为arr.
+
+2.现在题目变成了,我们需要找到一个子列,子列中1的元素数量严格大于-1的元素数量.
+
+3.继续简化: 也就是需要找到一个子列,子列中所有元素的和大于0.
+
+4.这时自然可以想到直接暴力遍历所有子列,找到和大于0且长度最大的子列即可.
+
+   1.我们需要的仅仅是子列和,所以这里有一个技巧:
+
+   i是数组的任意下标,计算arr[0]到arr[ i ]的和
+   对数组中的每一个下标都计算一次,得到一个新的数组,它被称为前缀和数组
+
+arr = [1, 1, -1, -1, -1, -1, 1]
+prefixSum = []  # 前缀和数组
+
+cur_sum = 0
+for val in arr:
+    prefixSum.append(cur_sum)
+    cur_sum += val
+prefixSum.append(cur_sum)
+
+print(prefixSum)  # [0, 1, 2, 1, 0, -1, -2, -1] 注意这里比arr多了一个元素
+
+   这时就能很容易找到每一个子列和了,比如我想要arr[2]+arr[3]+...+arr[5]的和直接用prefixSum[6] - prefixSum[2]即可,得到结果是-4.
+5.将任意一个子列表示为 (i, j) ,i和j分别是prefixSum数组中某个元素的下标.
+
+6.直接暴力遍历每一个(i, j)即可找出答案.
+
+7.继续优化.首先明确一下我们的目标:找到一个(i,j)使得prefixSum[j] - prefixSum[i] > 0.
+
+   1.按照暴力遍历的思路来看,我们需要在prefixSum数组进行这样的循环:
+
+
+i = 0
+j = 0
+num = len(prefixSum)
+for i in range(num):
+    for j in range(i + 1, num):
+        # 检查每一对下标看是否符合条件
+        if prefixSum[i] < prefixSum[j]:
+            res = max(j - i, res)
+            
+   2.这时观察到,在遍历内层循环j的过程中, 给任意一个i < j1 < j2, 如果prefixSum[i] < prefixSum[j2], 那么(i,j1)一定不会是答案.
+
+     也就是说,如果(i, j2)符合条件, 那么它们中间的所有j1都不需要再检查, 所以我们可以从右往左遍历j:
+
+
+i = 0
+j = 0
+res = 0
+num = len(prefixSum)
+for i in range(num):
+    for j in range(num - 1, i, -1):  # j现在是从7遍历到1
+        if prefixSum[i] < prefixSum[j]:
+            res = max(j - i, res)
+            continue  # 说明此时剩下的(i,j)不是候选项
+            
+   3.又观察到, 在遍历外层循环i的过程中, 在对于任意的一个i < i1 < j, 如果prefixSum[i1] >= prefixSum[i],那么(i1, j)一定不会是答案.
+
+   因为:
+
+   如果prefixSum[j] > prefixSum[i1], 那么(i1, j)一定不会是答案,因为(i, j)更长.
+   如果prefixSum[j] < prefixSum[i1], 那么(i1, j)也一定不会是答案,因为我们要找prefixSum[j] -prefixSum[i1] > 0的(i, j)
+   这时我们需要从头遍历一遍prefixSum, 找到一个严格单调递减的数组.
+
+   比如当前这个测试用例,只有[0, 5, 6]可能是i的候选项.
+
+
+# prefixSum = [0, 1, 2, 1, 0, -1, -2, -1] 
+stk = []
+for i in range(len(prefixSum)):
+    if len(stk) == 0 or prefixSum[stk[-1]] > prefixSum[i]:
+        stk.append(i)  # 因为最终需要的答案是最长距离,需要下标来计算,所以这里存储下标
+    print(stk)  # [0, 5, 6]
+    
+    
+8.现在问题就变成了,遍历 stk = [0 ,5, 6], 拿到一个i, 再从右向左遍历prefixSum = [0, 1, 2, 1, 0, -1, -2, -1] ,拿到一个j, 检查每一对(i, j)
+
+9.此时再观察
+
+   对于一个j, 如果它满足prefixSum[j] > prefixSum[stk[0]], 那么(0, j)是候选项, 但是由于stk是单调递减的,所以prefixSum[j]也是>prefixSum[stk[0 + x]],那么(stk[0 + x], j)也是候选项.
+
+   对于一个j, 如果它满足prefixSum[j] < prefixSum[stk[0]], 那么(0, j)不是候选项, 但是prefixSum[j]和prefixSum[stk[0 + x]]的大小关系无法判断,所以(stk[0 + x], j)也是候选项.
+
+   但是如果反过来, 反向遍历stk, 对于一个j 如果它满足prefixSum[j] < prefixSum[stk[-1]], 因为是单调递减的,所以stk中的其他元素都不会再小于prefixSum[j] , 所以j就可以直接被排除掉.
+
+   再然后, 如果对于一个j 如果它满足prefixSum[j] > prefixSum[stk[-1]], 那么(stk[-1], j)就是候选项,此时再根据7.1, 对于stk[-1]来说, j再继续向左遍历已经没有意义了,所以就可以把stk[-1]排除掉了.而stk[-2]及后面的元素还需要继续判断,但也不必回溯到prefixSum的最右端继续遍历j了.
+
+根据以上思路, 操作刚好契合栈, 所以就用栈stk来存储[0, 5, 6], 得到最终的代码.关键在21到29行
+
+
+def longestWPI(self, hours: List[int]) -> int:
+    arr = []
+    for val in hours:
+        if val > 8:
+            arr.append(1)
+        else:
+            arr.append(-1)
+
+    prefixSum = []  # 前缀和数组
+    cur_sum = 0
+    for val in arr:
+        prefixSum.append(cur_sum)
+        cur_sum += val
+    prefixSum.append(cur_sum)
+
+    stk = []
+    for i in range(len(prefixSum)):
+        if len(stk) == 0 or prefixSum[stk[-1]] > prefixSum[i]:
+            stk.append(i)  # 因为最终需要的答案是最长距离,需要下标来计算,所以这里存储下标
+
+    res = 0
+    # 逆向遍历prefixSum
+    for j in range(len(prefixSum) - 1, -1, -1):
+        # 成立的话, (stk[-1], j)是一个候选项
+        while len(stk) != 0 and prefixSum[j] > prefixSum[stk[-1]]:
+            res = max(res, j - stk[-1])
+            stk.pop()
+    
+    return res
+
+
