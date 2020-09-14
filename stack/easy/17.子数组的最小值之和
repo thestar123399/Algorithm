@@ -1,0 +1,852 @@
+给定一个整数数组 A，找到 min(B) 的总和，其中 B 的范围为 A 的每个（连续）子数组。
+
+由于答案可能很大，因此返回答案模 10^9 + 7。
+
+ 
+
+示例：
+
+输入：[3,1,2,4]
+输出：17
+解释：
+子数组为 [3]，[1]，[2]，[4]，[3,1]，[1,2]，[2,4]，[3,1,2]，[1,2,4]，[3,1,2,4]。 
+最小值为 3，1，2，4，1，1，2，1，1，1，和为 17。
+ 
+
+提示：
+
+1 <= A <= 30000
+1 <= A[i] <= 30000
+
+C++
+class Solution {
+public:
+    int sumSubarrayMins(vector<int>& A) {
+        stack<int> st;
+        const int BASE = 1e9+7;
+        int sum = 0;
+        int res = 0;
+        int size = A.size();
+
+        for(int i = 0; i < size; i++){
+            while(!st.empty() && A[st.top()] >= A[i]){
+                int top = st.top();
+                st.pop();
+                int new_top = st.empty() ? -1 : st.top();
+                sum += ((A[i] - A[top]) % BASE * (top - new_top) % BASE);
+            }
+
+            sum = (sum + A[i]) % BASE;
+            res = (res + sum) % BASE;
+            st.push(i);
+        }
+
+        return res % BASE;
+    }
+};
+
+C++
+*****************************************************************
+方法一
+// ans：数组A[]的连续子数组最小值之和,ans=dp[0]+dp[1]+...+dp[n-1]
+// dp[i]：以A[i]结尾的子数组的最小值之和，这是重点，以A[i]为结尾，意思就是 A[1,....,i],A[2,....,i]...A[i-1,i],就是线性的。
+// dp[i]=dp[i-1]+A[i]-(修正值offset)
+//如果是单调递增栈的话，A[i]作为最大值，只影响最后一个组合就是本身，A[I]的最小值才为A【I】.所以直接加上就好 
+// 但是如果A[i] < A[stack.top()]的话，意味着本来以A[stack.top()]为最小值的(栈顶保存的下标-栈顶第二个元素保存的下标)这些元素
+//发现自己被骗了，应该以A[i]为最小值，所以
+// 对A[i]之前的每个段{offset+=(A[栈顶保存的下标]-A[i])*(栈顶保存的下标-栈顶第二个元素保存的下标)}
+// 单调增栈st：从st[i-1]+1一直到st[i]代表一个段，且该段的最小值恰是A[st[i]]
+//举个例子，对弈[1,3,2]来说：
+//第一次1入栈，dp[0] = 1，以1结尾的；ans = dp[0] = 1;这时候只有一种情况就是{1}
+//第二次3 > 1;dp[1] = dp[0] + A[1];这时候以3结尾的有两种情况{1,3}，{3}，所以最小值之和是 dp[1] = 1 + 3 = 4;
+//第三次 2 < 3;dp[2] = {1,3,2} , {3,2},{2};然而dp[1] = {1,3}，{3}；所以2的出现，让{3} ——> {3,2}，这里的最小值成了2；
+// 所以要减去1； dp[2] = dp[1] + A[i] - 1 = 5;
+//所以ans = 1 + 4 + 5 =10
+class Solution {
+public:
+   int sumSubarrayMins(vector<int>& A) {
+       const int BASE = 1e9 + 7;
+       stack<int> st;
+       int ans = 0, sum = 0; // sum：以A[i]结尾的子数组的ans，相当于dp[i]
+       for (int i = 0; i < A.size(); ++i) {
+           while (!st.empty() && A[st.top()] >= A[i]) {
+               int top = st.top(); st.pop();
+               int new_top = st.empty() ? -1 : st.top();
+               sum += ((A[i] - A[top]) % BASE * (top - new_top) % BASE);
+           }
+           sum = (sum + A[i]) % BASE;
+           ans = (ans + sum) % BASE;
+           st.push(i);
+       }
+       return ans % BASE;
+   }
+};
+
+或者
+DP + Stack
+解题思路
+用dp(i)表示以第i个数位结尾的子数组的解, 那么最终解就是Σdp(i). 考虑数组(a0,a1,...,ak,ak+1,...ai)， 其中ak之后的元素都不大于ai， 则：
+dp(i)=dp(k)+(i−k)∗ai
+
+寻找k，用栈维护。
+代码
+
+object Solution {
+    def sumSubarrayMins(A: Array[Int]): Int = {
+        val dp = Array.fill(A.length)(0)
+        var l = List.empty[(Int, Int)]
+        val mod = 1e9.toInt + 7
+        A.indices foreach {i => 
+            l = l.dropWhile(_._1 >= A(i))
+            l match {
+                case Nil => dp(i) = (i+1)* A(i) 
+                case (h,k)::t => dp(i) = dp(k) + (i-k)*A(i) 
+            }
+            dp(i) = dp(i) % mod
+            l::= (A(i), i)
+            
+        }
+        dp.foldLeft(0){(acc, x) => (acc + x) % mod}
+    }
+}
+复杂度
+时间空间复杂度都是O(N)
+
+
+方法二
+解题思路
+单调栈，168ms、38.1MB，60%、36%
+
+单调递增栈，找到当前元素index左右边第一个更小数的位置left、right
+(left, right)区间内A[i]最小，比A[i]小的m个，大的n个
+考虑以A[i]为最小值的连续子数组个数，只有A[i]的1个，只有A[i]及其左边元素的m个，只有A[i]及其右边元素的n个，包含A[i]及其左右元素的m * n个
+则A[i]对结果的总贡献为A[i] * (1 + m + n + m * n)
+两次遍历，第一次遍历找到每个元素左右边第一个更小数的位置，第二次遍历计算每个元素的贡献
+代码
+
+class Solution {
+private:
+    const int base = 1e9 + 7;
+public:
+    int sumSubarrayMins(vector<int>& A) {
+        int res = 0, n = A.size();
+        stack<int> stk;
+        vector<int> rightMin(n, n), leftMin(n, -1);
+        for(int i = 0; i < n; i++){
+            while(!stk.empty() && A[stk.top()] > A[i]){
+                rightMin[stk.top()] = i;
+                stk.pop();
+            }
+            if(!stk.empty()) leftMin[i] = stk.top();
+            stk.push(i);
+        }
+        for(int i = 0; i < n; i++){
+            res += A[i] * (1 + i - leftMin[i] - 1 + rightMin[i] - i - 1 + 
+                            (i - leftMin[i] - 1) * (rightMin[i] - i - 1));
+            res %= base;
+        }
+        return res;
+    }
+};
+
+方法三
+思路：
+1，利用单调栈记录截止到当前下标之前的所有下边界
+2，利用sums[i]记录所有以i为终点的区间最小值之和
+
+C++
+
+class Solution {
+public:
+    const long M = 1e9 + 7;
+    int sumSubarrayMins(vector<int>& A) {
+        int N = A.size();
+        stack<int> st;
+        vector<long> sums(N, 0);
+        for (int i = 0; i < N; ++i) {
+            while (!st.empty() && A[st.top()] >= A[i]) {
+                st.pop();
+            }
+            if (st.empty()) {
+                sums[i] = A[i] * (i + 1);
+            } else {
+                sums[i] = sums[st.top()] + A[i] * (i - st.top());
+            }
+            sums[i] %= M;
+            st.push(i);
+        }
+        long res = 0;
+        for (auto x : sums) {
+            res += x;
+            res %= M;
+        }
+        return res;
+    }
+};
+
+方法四
+保存一个单调递增栈，栈中保存的是值在数组中的位置，那么可以遍历数组A，考虑以A[i]结尾的每一个子数组，
+假设在当前A[i]位置，栈底到栈顶的数据为a,b,c,i,那么有A[a]<A[b]<A[c]<A[i],那么以A[i]结尾且A[i]作为最小值的子数组个数为i-c,同理以A[i]结尾且A[c]为最小值的子数组个数为c-b，依次类推，可以用一个变量保存栈中子数组最小值的和
+
+
+class Solution {
+public:
+    int sumSubarrayMins(vector<int>& A) {
+        stack<int> sta;
+        sta.push(-1);
+        long sum = 0;
+        long ans = 0;
+        int deno = pow(10,9)+7;
+        for(int i =0;i<A.size();i++){
+            while(sta.top()!=-1&&A[sta.top()]>=A[i]){
+                int top = sta.top();
+                sta.pop();
+                sum -=(top-sta.top())*A[top];
+            }
+
+            sum+=(i-sta.top())*A[i];
+            sta.push(i);
+            sum%=deno;
+            ans = ans+sum;
+            ans = ans%deno;
+        }
+        return ans;
+    }
+};
+
+方法五
+解题思路
+单调递增栈的应用，比较容易超时的点是dot这个变量要用，不然的话就要反复遍历整个栈来求加权和，计算开销很大。
+
+代码
+
+class Solution {
+public:
+    int sumSubarrayMins(vector<int>& A) {
+        int sum = 0;
+        vector<pair<int,int>>vec;
+        int dot = 0;
+        for (int j = 0;j < A.size(); ++j){
+            int cnt = 0;
+            while(vec.size()>0 && A[j] < vec.back().first){
+                cnt += vec.back().second;
+                dot -= vec.back().second * vec.back().first;
+                vec.pop_back();
+            }
+            vec.push_back(pair<int,int>(A[j],cnt+1));
+            dot += vec.back().first * vec.back().second;
+            sum += dot;
+            sum %= 1000000007;
+        }
+        return sum;
+    }
+};
+
+Java
+*************************************************************************************
+方法一 DP，其实也是单调栈，但好理解一些
+class Solution {
+    public int sumSubarrayMins(int[] A) {
+        int length = A.length;
+        int[] left = new int[length];
+        int[] right = new int[length];
+        left[0] = -1;
+        right[length-1] = length;
+        for(int i = 0; i < length; i++){
+            int l = i-1;
+            while(l >=0 && A[l] > A[i])
+                l = left[l];
+            left[i] = l;
+        }
+        for(int i = length-1; i >= 0; i--){
+            int r = i+1;
+            while(r < length && A[r] >= A[i])
+                r = right[r];
+            right[i] = r;
+        }
+        int ans = 0;
+        int mod = 1000000007;
+        for(int i = 0; i < length; i++)
+            ans = (ans + (i-left[i])*(right[i]-i)*A[i]) % mod;
+        return ans;
+    }
+}
+
+方法二
+//第一步：找出这个数字左边有几个，右边有几个，赋值为m、n；
+    //第二部：计算以这个数字为最小值的情况有集中：(m+1)*(n+1);
+    //第三步：遍历数组A的每一个元素，以其为最小数的次数乘其本身，再求和就是最后结果啦。
+
+    //正常情况下，找出数组中每一个元素左边和右边各有几个连续的、比它小的数字的复杂度为n的二次方，
+    //怎样可以优化算法复杂度呢。
+    
+    //是否可以维护一个栈，只存比当前栈顶元素更大的元素，在一个元素入栈之前要将所有比它小的数都弹出栈
+    //那么，在这个元素入栈的时候，可以知道左边（连续）比他大的数有几个，出栈的时候会知道右边的数有几个。
+    //这样，复杂度变为了O（N）.
+
+    if(A==null||A.length==0)
+        return 0;
+    int len = A.length;
+    
+    int[] left=new int[len];
+    int[] right = new int[len];
+    Stack<Integer>stack = new Stack<>();
+    for(int i=0;i<len;i++){
+        while(!stack.isEmpty()&&A[i]<=A[stack.peek()]){
+            int poppos = stack.pop();
+            right[poppos] = i-poppos-1;
+        }
+        if(stack.isEmpty()){
+            left[i] = i;
+        }
+        else{
+            left[i] = i-stack.peek()-1;
+        }
+        stack.push(i);
+    }
+    while(!stack.isEmpty()){
+        int pos = stack.pop();
+        right[pos] = len-1-pos;
+    }
+    long res=0;
+    for(int i=0;i<len;i++){
+        res+=A[i]*(left[i]+1)*(right[i]+1);
+    }
+    return (int)(res% 1000000007);
+}
+
+
+方法三
+方法 1：前驱 / 后继数组
+想法
+
+考虑所有满足 A[j] 为最右且最小的元素的子序列个数 #(j)，那么结果就是 sum #(j) * A[j]。（我们必须考虑最右这样才可以构造互不相交的子序列，否则会出现多次计算，因为一个数组的最小值可能不唯一。）
+
+这就变成考虑最小的下标 i <= j 满足 A[i], A[i+1], ..., A[j] 都 >= A[j] 以及最大的下标 k >= j 满足 A[j+1], A[j+2], ..., A[k] 都 > A[j]。
+
+算法
+
+例如，A = [10, 3, 4, 5, _3_, 2, 3, 10] 我们需要计算 #(j = 4)，也就是第二个数字 3 ，被标记的那个，我们会发现 i = 1 和 k = 5。
+
+由此，实际的总数为 #(j) = (j - i + 1) * (k - j + 1) 其中 j - i + 1 选择子序列的左端点 i, i+1, ..., j，而 k - j + 1 选择子序列的右端点 j, j+1, ..., k。
+
+对于每个询问（也就是根据 j 计算出 (i, k)）是一个经典问题，可以用一个栈来解决。我们会重点解答如何找到 i，而找到 k 的做法与之类似。
+
+构造前序数组
+
+做法是维护一个栈，A 的单调下降子序列（事实上是维护一个 A 的下标索引）。对于下一个询问，候选界限为 i* - 1，其中 A[i*] 以递增顺序存储。
+
+现在考虑升序下标 j ，我们可以按照 i* 递减顺序移走所有 A[i*] <= A[j]。
+
+例如，假设 A = [10, 5, 3, 7, 0, 4, 5, 2, 1, _8_] 那么当考虑 j = 9 (A[j] = 8)，我们有一个存储边界的栈类似于 [-1, 0, 3, 6]（代表 A[i*] = -inf, 10, 7, 5）。我们从栈中弹出 6 和 3 因为 5 <= 8 且 7 <= 8，因此得到询问的边界为 i* - 1 = 0。
+
+注意这个过程线性的，因为只进行了线性次的入栈和出栈。
+
+这种办法很难想到，但在很多地方都有用到，所以很值得学习其细节。
+
+class Solution {
+    public int sumSubarrayMins(int[] A) {
+        int MOD = 1_000_000_007;
+        int N = A.length;
+
+        // prev has i* - 1 in increasing order of A[i* - 1]
+        // where i* is the answer to query j
+        Stack<Integer> stack = new Stack();
+        int[] prev = new int[N];
+        for (int i = 0; i < N; ++i) {
+            while (!stack.isEmpty() && A[i] <= A[stack.peek()])
+                stack.pop();
+            prev[i] = stack.isEmpty() ? -1 : stack.peek();
+            stack.push(i);
+        }
+
+        // next has k* + 1 in increasing order of A[k* + 1]
+        // where k* is the answer to query j
+        stack = new Stack();
+        int[] next = new int[N];
+        for (int k = N-1; k >= 0; --k) {
+            while (!stack.isEmpty() && A[k] < A[stack.peek()])
+                stack.pop();
+            next[k] = stack.isEmpty() ? N : stack.peek();
+            stack.push(k);
+        }
+
+        // Use prev/next array to count answer
+        long ans = 0;
+        for (int i = 0; i < N; ++i) {
+            ans += (i - prev[i]) * (next[i] - i) % MOD * A[i] % MOD;
+            ans %= MOD;
+        }
+        return (int) ans;
+
+    }
+}
+
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是 A 的长度。
+空间复杂度：O(N)。
+
+方法 2：维护最小值栈
+想法
+
+对于每个 j，考虑所有子序列 [i, j] 的最小值。想法是每当我们增加 j，这些最小值可能会有关联，事实上，min(A[i:j+1]) = min(A[i:j], A[j+1])。
+
+模拟数组 A = [1,7,5,2,4,3,9]，当 j = 6 事所有子序列 [i, j] 的最小值为 B = [1,2,2,2,3,3,9]，可以发现重要点是 i = 0, i = 3, i = 5, i = 6 ，分别是从 j 开始向左移动遇到的最小值的位置。
+
+算法
+
+维护关于重要点的编码 B，对于上面提到的 (A, j) 维护 stack = [(val=1, count=1), (val=2, count=3), (val=3, count=2), (val=9, count=1)]，这表示最小值的编码为 B = [1,2,2,2,3,3,9]。对于每个 j 我们需要计算 sum(B)。
+
+当我们增加 j，我们用最新的元素 (val=x, count=1) 更新栈。弹出所有值 >= x 的元素，因为当前子序列 [i, j] 的最小值将是 A[j] 而不是之前的值。
+
+最后，结果是栈元素的点积
+e ∈ stack
+∑e.val∗e.count，我们同时会用变量 dot 来维护。
+
+JavaPython
+
+class Solution {
+    public int sumSubarrayMins(int[] A) {
+        int MOD = 1_000_000_007;
+
+        Stack<RepInteger> stack = new Stack();
+        int ans = 0, dot = 0;
+        for (int j = 0; j < A.length; ++j) {
+            // Add all answers for subarrays [i, j], i <= j
+            int count = 1;
+            while (!stack.isEmpty() && stack.peek().val >= A[j]) {
+                RepInteger node = stack.pop();
+                count += node.count;
+                dot -= node.val * node.count;
+            }
+            stack.push(new RepInteger(A[j], count));
+            dot += A[j] * count;
+            ans += dot;
+            ans %= MOD;
+        }
+
+        return ans;
+    }
+}
+
+class RepInteger {
+    int val, count;
+    RepInteger(int v, int c) {
+        val = v;
+        count = c;
+    }
+}
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是 A 的长度。
+空间复杂度：O(N)。
+
+
+
+
+或者
+
+对于A数组中的任一个元素A[i]，如果能够计算以A[i]为最小元素的子数组数量n[i]，那么可以发现最终的结果就是A[0]*n[0] + A[1]*n[1] +...+A[n-1]*n[n-1]，所以现在转换问题为计算以A[i]为最小元素的子数组数量n[i]。
+
+对于A[i]，向左查看元素，如果第一个小于A[i]的元素为A[a]，向右查看元素，第一个小于A[i]的元素为A[b]，可以发现以A[i]为最小元素的子数组数量n[i]=(i-a)*(b-i)。
+
+例子：对于A为[1,7,5,2,4,3,9]，A[3]=2，那么左边第一个小于A[3]的是A[0]=1，右边第一个小于A[3]的没有，那么为A.length=7，以A[3]为最小元素的子数组数量n[3]=(3-0)*(7-3)=12。
+
+定义两个数组left和right
+
+left[i]表达的是A[i]左边第一个比A[i]小的数的索引，如果都比A[i]大，那么为-1；
+
+right[i]表达的是A[i]右边第一个比A[i]小的数的索引，如果都比A[i]大，那么为n。
+
+时间复杂度：O(N)
+
+空间复杂度：O(N)
+
+
+private final int INT = 1000000007;
+public int sumSubarrayMins(int[] A) {
+    int n = A.length;
+    int[] left = new int[n];    // left[i]表达的是A[i]左边第一个比A[i]小的数的索引，如果都比A[i]大，那么为-1
+    int[] right = new int[n];   // right[i]表达的是A[i]右边第一个比A[i]小的数的索引，如果都比A[i]大，那么为n
+    Stack<Integer> stack = new Stack<>();
+    // 计算left数组
+    for (int i = 0; i < n; i++) {
+        while (!stack.isEmpty() && A[stack.peek()] > A[i]){
+            stack.pop();
+        }
+        left[i] = stack.isEmpty()? -1: stack.peek();
+        stack.push(i);
+    }
+    // 计算right数组
+    stack.clear();
+    for (int i = n-1; i >= 0; i--) {
+        while (!stack.isEmpty() && A[stack.peek()] >= A[i]) {
+            stack.pop();
+        }
+        right[i] = stack.isEmpty()? n: stack.peek();
+        stack.push(i);
+    }
+    // 计算结果
+    int res = 0;
+    for (int i = 0; i < n; i++) {
+        res += (i-left[i]) * (right[i]-i) * A[i];
+        res %= INT;
+    }
+    return res;
+}
+
+**********
+javascript 详解
+单调栈
+
+官方给出了两个解法，都是用的单调栈。所以首先需要讲下单调栈的作用。
+
+单调栈是为了找寻数组中离 A[i] 最近的大于A[i],或小于A[i] 的 A[j] ,或 A[k] 的 ,其中 j<i ， k>i
+比如 [1,3,2],找寻 2 的左面第一个比较它小的数
+
+先说下 A[i] 左面最小值的情况，右面类似
+如果不用单调栈的话，需要从 2 开始向左一个一个的找。这样当每个数都需要这样查找的话，需要 O(n2) 时间
+单调栈是一次性把 A[i] 左面的 最小值求出并记录下来，用的时候可以直接用。时间 是 O(n)
+
+构造左栈，初始 stack=[],记录左面第一个最小值索引的数组 left=[]
+
+数字 1， 栈为空，当前没有比 1小的数，比1小的数的索引记为 -1， left=[-1] ，1 直接入栈 stack=[1]
+数字 3 , 栈不为空，3 大于 1，比3小的左面第一个数就是 1，索引是0 ，left=[-1,0] , 3 直接入栈 stack=[1,3]
+数字 2， 栈不为空，2 大于 3，为了找比2小的数，把 3 弹出，比 1 大，left=[-1,0,0],2 入栈 stack=[1,2]
+构造右栈的时候，注意是从后向前构造，其它都一样。
+
+方法一解题思路
+既然是求子数组中最小值的和，就是求 以 A[i] 作为最小数能构成的数组有多少个。
+
+比如 [2,4,1,2] ,以1 为最小数。能构成的数组数为 (2+1)*(1+1) ，2 表示 1 左面有两个比它大的数，1 表示 1 右面有一个比它大的数。
+
+用单调栈求出 A[i] 对应的左右最近比 A[i] 小的数，记索引为 prev,next，A[i] 为最小数能形成的数组为
+
+
+(i-prev[i])*(next[i]-i)
+这里为什么没有加 1 了呢，因为 prev[i]已经是比 A[i] 小的数了，能和 A[i] 形成数组的都是比 A[i] 大的数。
+
+代码
+
+/**
+ * @param {number[]} A
+ * @return {number}
+ */
+var sumSubarrayMins = function (A) {
+  const mod = 1e9 + 7
+  let stack = []
+  let prev = []
+  for (let i = 0; i < A.length; i++) {
+    //这里的 A[stack[stack.length - 1]] >= A[i] 大于等于了，后面的就只能是大于了，不然会重复计算相等的值
+    while (stack.length !== 0 && A[stack[stack.length - 1]] >= A[i]) stack.pop()
+    prev[i] = stack.length ? stack[stack.length - 1] : -1
+    stack.push(i)
+  }
+  stack = []
+  let next = []
+  for (let i = A.length - 1; i >= 0; i--) {
+    while (stack.length !== 0 && A[stack[stack.length - 1]] > A[i]) stack.pop()
+    next[i] = stack.length ? stack[stack.length - 1] : A.length
+    stack.push(i)
+  }
+
+  let sum = 0
+  for (let i = 0; i < A.length; i++) {
+    sum += (i - prev[i]) * (next[i] - i) * A[i]
+    sum %= mod
+  }
+  return sum
+};
+
+方法二解题思路
+方法二和方法一的整体思想是一样的，但是处理比较巧妙，是用的一次遍历。思想不是左右看，是向前看，就是每加进来一个元素，会对整体造成怎样的影响。
+
+比如 当前最小值是A[i] 能形成的最小数组数集合是 group=[[],[]...],数量是 count ，后面来的 A[j]>A[i] 那么 A[j]与 group 中每个数组都能形成新的子数组，所以 加入 A[j] 后，还是A[i]为最小值，没变，以A[i]为底的最小子数组的 和为 count *= 2,也就是加倍。
+
+再说下A[j]<A[i] 的情况，A[j]会形成新的最小值，A[j]会接管A[i]的地盘，所以把 A[i]弹出，A[j]的 count 等于A[i]的count
+
+最后说下累积的情况。想象一下如果把数组的值连成线的话，会是一个高低起伏的状态。如果 A[p]>A[i]>A[q] i>p && i<q，那么A[i]就是谷底值，两边的都它大。加入A[j]后，可能前面有多个这样的谷底值，A[j]对每个谷底值能形成的子数组都是有贡献的。
+
+代码
+
+/**
+ * @param {number[]} A
+ * @return {number}
+ */
+var sumSubarrayMins = function (A) {
+  const mod = 1e9 + 7
+  let stack = []
+  let tmp = 0, allCount = 0, sum = 0
+  for (let i = 0; i < A.length; i++) {
+    allCount = 1
+    while (stack.length !== 0 && stack[stack.length - 1].val > A[i]) {
+      let { count, val } = stack.pop()
+      tmp -= count * val
+      allCount += count
+    }
+
+    tmp += allCount * A[i]
+    stack.push({
+      val: A[i],
+      count:allCount
+    })
+
+    sum += tmp
+    
+    sum%=mod
+  }
+  return sum
+};
+总结
+单调栈是一个通用技巧，可以解决好多问题。
+
+
+
+方法四
+分治算法
+找出数组中的最小值（min）的索引（i），i左侧有m个元素，右侧有n个元素;
+所以包含i的子数组一共有 (m+1)*(n+1)个;
+这些子数组的最小值的和就是 min*(m+1)*(n+1)；
+
+同时，不包含i的子数组就分别在左侧的数组或右侧的数组中，因为肯定不能跨过i；
+这样一来就把数组分成了两部分，然后再分别处理；
+
+分治算法的时间复杂度是O(n*logn)，虽然比单调栈要差，但是空间复杂度是O(1)，比单调栈好
+
+class Solution {
+    
+    long sum=0;
+    int[] A;
+    int model=1000000007;
+
+    public int sumSubarrayMins(int[] A) {
+        this.A=A;
+
+        split(0,A.length-1);
+        return (int)sum;
+    }
+
+    void split(int start,int end){
+        if(start>end)return;
+
+        int minIdx=start;
+        int minValue=A[start];
+        for(int i=start+1;i<=end;i++){
+            if(A[i]<minValue){
+                minValue=A[i];
+                minIdx=i;
+            }
+        }
+
+        int tmp=(minIdx-start+1)*(end-minIdx+1);
+        add(((long)tmp)*((long)minValue));
+
+        split(start,minIdx-1);
+        split(minIdx+1,end);
+    }
+
+    void add(long value){
+        value=value%model;
+        if(sum>=model-value)sum=sum-model+value;
+        else sum+=value;
+    }
+}
+
+Python
+*****************************************************************
+方法一
+方法 1：前驱 / 后继数组
+class Solution(object):
+    def sumSubarrayMins(self, A):
+        MOD = 10**9 + 7
+        N = len(A)
+
+        # prev has i* - 1 in increasing order of A[i* - 1]
+        # where i* is the answer to query j
+        stack = []
+        prev = [None] * N
+        for i in xrange(N):
+            while stack and A[i] <= A[stack[-1]]:
+                stack.pop()
+            prev[i] = stack[-1] if stack else -1
+            stack.append(i)
+
+        # next has k* + 1 in increasing order of A[k* + 1]
+        # where k* is the answer to query j
+        stack = []
+        next_ = [None] * N
+        for k in xrange(N-1, -1, -1):
+            while stack and A[k] < A[stack[-1]]:
+                stack.pop()
+            next_[k] = stack[-1] if stack else N
+            stack.append(k)
+
+        # Use prev/next array to count answer
+        return sum((i - prev[i]) * (next_[i] - i) * A[i]
+                   for i in xrange(N)) % MOD
+
+方法 2：维护最小值栈
+class Solution(object):
+    def sumSubarrayMins(self, A):
+        MOD = 10**9 + 7
+
+        stack = []
+        ans = dot = 0
+        for j, y in enumerate(A):
+            # Add all answers for subarrays [i, j], i <= j
+            count = 1
+            while stack and stack[-1][0] >= y:
+                x, c = stack.pop()
+                count += c
+                dot -= x * c
+
+            stack.append((y, count))
+            dot += y * count
+            ans += dot
+        return ans % MOD
+
+方法二
+单调增栈/O(N)
+解题思路
+单调增栈。需要记录索引，以及当前位置i和之前位置的最小值求和。
+
+代码
+
+class Solution:
+    def sumSubarrayMins(self, A: List[int]) -> int:
+        l = []
+        sums = 0
+        ret = 0
+        for i, a in enumerate(A):
+            if len(l) == 0:
+                l.append([i, a, a])
+                sums += a
+                ret += sums
+            else:
+                last = None
+                while len(l) != 0 and l[-1][2] >= a:
+                    last = l.pop()
+                    sums -= last[1]
+                if last is None:
+                    l.append([i, a, a])
+                    sums += a
+                    ret += sums
+                else:
+                    s = a * (i - last[0] + 1)
+                    l.append([last[0], s, a])
+                    sums += s
+                    ret += sums
+        return ret % (1000000000 + 7)
+
+或者
+class Solution:
+    def sumSubarrayMins(self, A: List[int]) -> int:
+        res = 0
+        # 单调递增栈：第一个元素是值，第二个元素是值所在的位置（A数组）
+        stack = [(0,-1)]
+        A.append(0)
+        for i in range(len(A)):
+            # 出栈条件
+            while len(stack) > 0 and A[i] < stack[-1][0]:
+                # 栈顶元素出栈
+                tmp = stack.pop()
+                # 更新res：当前出栈元素*与左边最近一个小于该元素的位置差*与右边最近一个小于该元素的位置差
+                res += tmp[0] * (i - tmp[1]) * (tmp[1] - stack[-1][1])
+            # 入栈（当前元素>=栈顶元素）
+            stack.append((A[i], i))
+        return res % 1000000007
+
+或者
+class Solution:
+    def sumSubarrayMins(self, A: List[int]) -> int:
+        res, mod = 0, 10 ** 9 + 7
+        stack = []
+        A = [0] + A + [0]
+        for i, num in enumerate(A):
+            while stack and A[stack[-1]] > num:
+                # 当我们找到了更小的点i，那么对于前一个点j，
+                # 则说明它往右只能延申到i(右边界)，
+                # 而左边界则为前一个点k的索引（比它大）
+                # 相乘
+                j = stack.pop()
+                k = stack[-1]
+                res += A[j] * (i - j) * (j - k)
+            stack.append(i)
+        return res % mod
+
+单调栈简洁代码和思路
+解题思路
+首先对于子数组而言,一个长度为N的数组,从第1个位置到第N个位置遍历, 第K个位置作为子数组终点可以构成K个不同的子数组;
+因此我们需要对于每个元素作为子数组终点时分别统计出对应的所有子数组里面的最小值总和,直接暴力做法是O(N^2), 对每个子数组都往前找不同子数组的最小值，但这样存在很多冗余的操作,如图所示：
+
+比如对于A[0],...,A[k-1], 如果我们已经知道各个区间的最小值了, 那么以A[k-1]作为终点的子数组的最小值总和为:p1*l1+p2*l2+p3*l3+p4*l4; 对于A[k]到来时, 就没必要再去对从k往前的每一个子数组都分别求一个最小值，因为会存在大量重复的计算;
+比如我们发现A[k]大小是在p2, p3之间, 那么对于p1,p2这两段l1+l2长度的区间子数组其实就没必要再计算了, 因为这些在上一个元素A[k-1]加进来时候已经考虑了, 此时对于k位置我们只需要用上一个位置k-1统计的总和pre进行增减即可，具体地, 首先将多计算的部分去掉pre = pre-l4*p4-l3*p3,然后再把新增的部分加进来即可pre = pre+A[k]*l.
+对于存储各个区间的最小值，这个操作就比较常用了，维护一个单调递增的栈即可, 栈中保存每个元素的位置，这样既可以知道区间长度l，又可以知道区间对应的最小元素值p。
+代码
+
+class Solution:
+    def sumSubarrayMins(self, A: List[int]) -> int:
+        stack = [-1]
+        ans = pre = 0
+        for i, v in enumerate(A):
+            # 维护一个单调递增栈
+            while len(stack) > 1 and A[stack[-1]] >= v:
+                p = stack.pop()
+                pre -= (p - stack[-1]) * A[p]
+            stack.append(i)
+            pre = pre + (stack[-1] - stack[-2]) * A[stack[-1]]
+            ans += pre
+        return ans % (pow(10, 9) + 7)
+
+****************
+方法1:单调栈
+维护一个单调栈，思路如图，举例转的这个栈
+维护一个tmptmp变量记录每一轮的resres值，resres的全局变量记录结果，每次弹出或是添加元素的时候，维护好tmptmp和resres
+
+链接：https://leetcode-cn.com/problems/sum-of-subarray-minimums/solution/leetcodebi-ji-java-py-si-ke-yi-dao-ti-907-zi-shu-3/
+
+Java
+class Solution {
+    int MOD = 1000000007;
+
+    public int sumSubarrayMins(int[] A) {
+        Stack<Pair> stack = new Stack<>();
+        int res = 0, tmp = 0;
+        for (int i = 0; i < A.length; i++) {
+            int count = 1;
+            while (!stack.empty() && stack.peek().val >= A[i]) {
+                Pair pop = stack.pop();
+                count += pop.count;
+                tmp -= pop.val * pop.count;
+            }
+            stack.push(new Pair(A[i], count));
+            tmp += A[i] * count;
+            res += tmp;
+            res %= MOD;
+        }
+        return res;
+    }
+}
+
+Python
+class Solution:
+    def sumSubarrayMins(self, A: List[int]) -> int:
+        MOD = 1000000007 # 维护一个单调递增栈
+        stack = [(float('-inf'),float('-inf'))]
+        res = tmp = 0
+        for i in range(len(A)):
+            count = 1
+            while stack and A[i] <= stack[-1][0]:
+                cur = stack.pop()
+                count += cur[1]
+                tmp -= cur[0] * cur[1]
+            stack.append((A[i],count))
+            tmp += A[i] * count
+            res += tmp
+            res %= MOD
+        return res
+
+
+
+
