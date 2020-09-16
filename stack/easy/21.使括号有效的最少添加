@@ -1,0 +1,313 @@
+给定一个由 '(' 和 ')' 括号组成的字符串 S，我们需要添加最少的括号（ '(' 或是 ')'，可以在任何位置），以使得到的括号字符串有效。
+
+从形式上讲，只有满足下面几点之一，括号字符串才是有效的：
+
+它是一个空字符串，或者
+它可以被写成 AB （A 与 B 连接）, 其中 A 和 B 都是有效字符串，或者
+它可以被写作 (A)，其中 A 是有效字符串。
+给定一个括号字符串，返回为使结果字符串有效而必须添加的最少括号数。
+
+ 
+
+示例 1：
+
+输入："())"
+输出：1
+示例 2：
+
+输入："((("
+输出：3
+示例 3：
+
+输入："()"
+输出：0
+示例 4：
+
+输入："()))(("
+输出：4
+ 
+
+提示：
+
+S.length <= 1000
+S 只包含 '(' 和 ')' 字符。
+
+C++
+class Solution {
+public:
+    int minAddToMakeValid(string S) {
+        int num = 0;
+        stack<char> st;
+        int size = S.length();
+
+        int i = 0;
+        while(i < size){
+            if(S[i] == '(') {
+                st.push(S[i]);
+                num++;
+            }
+            else if(S[i] == ')') {
+                if(!st.empty() && st.top() == '('){
+                    st.pop();
+                    num--;
+                }
+                else{
+                    st.push(S[i]);
+                    num++;
+                }
+            }
+            
+            i++;
+        }
+
+        return num;
+    }
+};
+
+C++
+**********************************************************
+方法一
+接收到'(' 则计数left++
+接收到')' 如果此时left=0，那么这个')'是无法被匹配的，给计数right++；如果left>0，则匹配之前的一个'('，left--
+最后输出left+right，即无法被匹配的')'个数+尚未被匹配的'('个数
+
+
+class Solution {
+public:
+    int minAddToMakeValid(string S) {
+        int left = 0;
+        int right = 0;
+        for (auto &c:S){
+            if (c=='(') left++;
+            else{
+                if (left>0) left--;
+                else right++;
+            }   
+        }
+        return left+right;
+    }
+};
+
+方法二
+计数
+
+class Solution {
+public:
+    int minAddToMakeValid(string S) {
+        int ans = 0, bal = 0;
+        for (char& ch : S) {
+            if (ch == '(') ++bal;
+            else {
+                if (bal == 0) ++ans;
+                else --bal;
+            }
+        }
+        return ans + bal;
+    }
+};
+栈
+
+class Solution {
+public:
+    int minAddToMakeValid(string S) {
+        stack<char> ms;
+        for (char& ch : S) {
+            if (!ms.empty() && ms.top() == '(' && ch == ')') ms.pop();
+            else ms.push(ch);
+        }
+        return ms.size();
+    }
+};
+
+方法三
+class Solution {
+public:
+    int minAddToMakeValid(string S) {
+        int blance = 0, step = 0;
+        for (auto&& p: S) {
+            if (p == '(') ++blance;
+            else  blance > 0 ? --blance : ++step;
+        }
+        step += blance;
+        return step;
+    }
+};
+
+或者
+解题思路
+遍历S字符串，stack的顶部与S中的字符串比较，匹配得到就下一个，没有就push入stack，最后结果堆得大小就是要添加的括号个数
+
+代码
+
+class Solution {
+public:
+    int minAddToMakeValid(string S) {
+        stack<char> temp;
+        for(int i=0;i<S.size();i++)
+        {
+            if(temp.empty())
+            {
+                temp.push(S[i]);
+            }
+            else{
+                if(S[i]==')'&&temp.top()=='(')
+                {
+                    temp.pop();
+                }
+                else{
+                    temp.push(S[i]);
+                }
+            }
+        }
+        return temp.size();
+    }
+};
+
+Java
+**************************************************************************
+方法一： 平衡法
+思路和算法
+
+保证左右括号数量的 平衡： 计算 '(' 出现的次数减去 ')' 出现的次数。如果值为 0，那就是平衡的，如果小于 0，就要在前面补上缺少的 '('。
+
+计算 S 每个前缀子数组的 平衡度。如果值是负数（比如说，-1），那就得在前面加上一个 '('。同样的，如果值是正数（比如说，+B），那就得在末尾处加上 B 个 ')' 。
+
+
+class Solution {
+    public int minAddToMakeValid(String S) {
+        int ans = 0, bal = 0;
+        for (int i = 0; i < S.length(); ++i) {
+            bal += S.charAt(i) == '(' ? 1 : -1;
+            // It is guaranteed bal >= -1
+            if (bal == -1) {
+                ans++;
+                bal++;
+            }
+        }
+
+        return ans + bal;
+    }
+}
+复杂度分析
+
+时间复杂度： O(N)，其中 N 是 S 的长度。
+
+空间复杂度： O(1)。
+
+方法二
+栈法
+
+/*
+执行用时：1 ms, 在所有 Java 提交中击败了63.74%的用户
+内存消耗：38.3 MB, 在所有 Java 提交中击败了5.34%的用户
+2020年8月24日 20:34
+*/
+class Solution {
+    public int minAddToMakeValid(String S) {
+        int ans=0;
+        Stack<Character> stack=new Stack<>();
+        for(int i=0;i<S.length();i++){
+            if(S.charAt(i)=='('){
+                stack.push('(');
+            }
+            else if(stack.isEmpty()){
+                ans++;
+            }
+            else{
+                stack.pop();
+            }
+        }
+        return ans+stack.size();
+    }
+}
+移除法
+
+/*
+执行用时：2 ms, 在所有 Java 提交中击败了34.13%的用户
+内存消耗：37.4 MB, 在所有 Java 提交中击败了91.11%的用户
+2020年8月24日 20:36
+*/
+class Solution {
+    public int minAddToMakeValid(String S) {
+        while(S.contains("()")){
+            S=S.replace("()","");
+        }
+        return S.length();
+    }
+}
+
+方法三
+public int minAddToMakeValid(String S) {
+        int left = 0, res = 0;
+        for(char ch : S.toCharArray()){
+            if(ch == '('){
+                left++;
+            }else {
+                if(left > 0){
+                    left--;
+                }else {
+                    res++;
+                }
+            }
+        }
+        return res + left;
+    }
+
+Python
+**************************************************
+方法一： 平衡法
+思路和算法
+
+保证左右括号数量的 平衡： 计算 '(' 出现的次数减去 ')' 出现的次数。如果值为 0，那就是平衡的，如果小于 0，就要在前面补上缺少的 '('。
+
+计算 S 每个前缀子数组的 平衡度。如果值是负数（比如说，-1），那就得在前面加上一个 '('。同样的，如果值是正数（比如说，+B），那就得在末尾处加上 B 个 ')' 。
+
+JavaPython
+
+class Solution(object):
+    def minAddToMakeValid(self, S):
+        ans = bal = 0
+        for symbol in S:
+            bal += 1 if symbol == '(' else -1
+            # It is guaranteed bal >= -1
+            if bal == -1:
+                ans += 1
+                bal += 1
+        return ans + bal
+复杂度分析
+
+时间复杂度： O(N)，其中 N 是 S 的长度。
+
+空间复杂度： O(1)。
+
+方法二
+解题思路
+一个栈 一个计数器
+
+碰到左括号 无条件入栈
+碰到右括号进判断，如果空栈，计数器+1；否则pop栈顶
+最后判断，如果读完全部的S栈内不是空的，则计数器加上栈的长度。。。
+
+（这道题是不是走错了难度
+
+代码
+
+class Solution:
+    def minAddToMakeValid(self, S: str) -> int:
+        stack=[]
+        count=0
+        
+        for i in S:
+            if i=='(':
+                stack.append(i)
+            else:
+                if i==')' and stack==[]:
+                    count+=1
+                else:
+                    stack.pop()
+
+        if stack!=[]:
+            count+=len(stack)
+
+        return count
+
