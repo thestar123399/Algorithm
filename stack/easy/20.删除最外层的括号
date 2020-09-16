@@ -1,0 +1,397 @@
+有效括号字符串为空 ("")、"(" + A + ")" 或 A + B，其中 A 和 B 都是有效的括号字符串，+ 代表字符串的连接。例如，""，"()"，"(())()" 和 "(()(()))" 都是有效的括号字符串。
+
+如果有效字符串 S 非空，且不存在将其拆分为 S = A+B 的方法，我们称其为原语（primitive），其中 A 和 B 都是非空有效括号字符串。
+
+给出一个非空有效字符串 S，考虑将其进行原语化分解，使得：S = P_1 + P_2 + ... + P_k，其中 P_i 是有效括号字符串原语。
+
+对 S 进行原语化分解，删除分解中每个原语字符串的最外层括号，返回 S 。
+
+ 
+
+示例 1：
+
+输入："(()())(())"
+输出："()()()"
+解释：
+输入字符串为 "(()())(())"，原语化分解得到 "(()())" + "(())"，
+删除每个部分中的最外层括号后得到 "()()" + "()" = "()()()"。
+示例 2：
+
+输入："(()())(())(()(()))"
+输出："()()()()(())"
+解释：
+输入字符串为 "(()())(())(()(()))"，原语化分解得到 "(()())" + "(())" + "(()(()))"，
+删除每个部分中的最外层括号后得到 "()()" + "()" + "()(())" = "()()()()(())"。
+示例 3：
+
+输入："()()"
+输出：""
+解释：
+输入字符串为 "()()"，原语化分解得到 "()" + "()"，
+删除每个部分中的最外层括号后得到 "" + "" = ""。
+ 
+
+提示：
+
+S.length <= 10000
+S[i] 为 "(" 或 ")"
+S 是一个有效括号字符串
+
+C++
+class Solution {
+public:
+    string removeOuterParentheses(string S) {
+        stack<char> st;
+        string res  = "";
+        int size = S.length();
+
+        int i = 0;
+        int first = 0;
+        while(i < size){
+            if(!st.empty() && S[i] == ')'){
+                if(st.top() == '(') st.pop();
+            }
+            else if(S[i] == '(') {
+                st.push(S[i]);
+            }
+            
+            if(st.empty() && i != 0){
+                if(i-1 > first+1){
+                    int num = i-1 - (first + 1) + 1;
+                    res += S.substr(first+1,num);
+                }
+                
+                first = i+1;
+            }
+
+            i++;
+        }
+
+        return res;
+    }
+};
+
+C++
+******************************************************************
+方法一
+小技巧：最外面的左括号跳过，L初始为1；当右括号数量等于左括号数量的位置就是最外面的右括号
+
+c++
+
+class Solution {
+public:
+    string removeOuterParentheses(string S) {
+        int L=1;int R=0;
+        string ans;
+        for(int i=1;i<S.size();i++){
+            if(S[i]=='(')L++;
+            else R++;
+            if(R!=L)ans.push_back(S[i]);
+            else {
+                i++;L=1;R=0;
+            }
+        }
+        return ans;
+    }
+};
+方法二
+思路：有效括号，括号都是配对的。
+原语其实是最短的括号匹配序列。
+括号匹配可以用栈来解，也可以用计数法求解。
+设cnt=0.
+从左向右扫描串，
+当遇到'('时，cnt++；
+当遇到')'时，cnt--；
+当cnt == 0时，找到一个原语。然后，剥去原语两边的括号，就能计算结果。
+
+
+class Solution {
+public:
+    string removeOuterParentheses(string S) {
+        string ans;
+        int cnt=0;
+        int beg=0;
+        for(int i=0;i<S.size();++i){
+            if(cnt == 0) beg = i;
+            if(S[i] == '(') ++cnt;
+            else --cnt;
+            if(cnt == 0){
+                ans += S.substr(beg+1,i-beg+1-2);
+            } 
+        }
+        return ans;
+    }
+};
+
+方法三
+解题思路
+left指向最外面的左括号，right指向最外面的右括号
+1.当stack为空，且当前字符为'('时，则将left指向该位置；
+2.当stack再次为空时，说明当前符号为最外右括号，则将right指向该位置
+如果是左括号，则push(S[i]) 如果stack为空，说明该括号为最外面的左括号(对应代码if(ss.empty()) left=i;)
+如果是右括号，则pop()一次 也就是当存入的左括号弹出
+举个例子
+((()))
+stack [ ]
+stack 第一次push ['('] 当前括号'('的索引存入left
+stack 继续push2次, ['(','(','(']
+stack 遇到')',pop [ '(' , '(' ]
+stack 遇到')',pop [ '(' ]
+stack 遇到')',pop [ ] 当前括号')'的索引存入right
+
+通过S.substr(left+1,right-left-1);截取left和right之间的字符串存入res
+
+代码
+
+class Solution {
+public:
+    string removeOuterParentheses(string S) {
+        stack<char> ss;
+        int left,right;
+        string res="";
+        for(int i=0;i<S.length();i++)
+        {
+            if(S[i]=='(')
+            {
+                if(ss.empty()) left=i;//栈为空，且当前字符为左括号，则判定为 最外左括号
+                ss.push(S[i]);
+            } 
+            if(!ss.empty()&&S[i]==')')  ss.pop();
+            if(ss.empty()) //栈再次为空，则当前位置判断为 最外右括号
+            {
+                right=i;
+                res+=S.substr(left+1,right-left-1);
+            }
+            
+        }
+        return res;
+
+    }
+};
+
+方法四
+思路
+类似于栈的匹配（不看这句也没有关系）
+遇到'(' 就把l加一，遇到')'就把l减一，当l重新归于零时，说明左右括号刚好匹配，这时找到一组原语。
+然后删除该原语的最外层括号，这里用mark记录原语的第一个左括号。
+
+class Solution {
+public:
+    string removeOuterParentheses(string S) {
+        string ans = "";
+        int l = 0, mark = 0;
+        for(char i : S){
+            if(i == '(')    ++ l;
+            else -- l;
+            if(l == 0){
+                ans.erase(ans.begin() + mark);
+                mark = ans.size();
+            }
+            else{
+                ans.push_back(i);
+            }
+        }
+        return ans;
+    }
+};
+
+Java
+*********************************************************************
+方法一
+思路：遍历字符串，遇到左括号就入栈，遇到右括号就出栈，每次栈空的时候，都说明找到了一个原语，记录下每个原语的起始位置和结束位置，取原字符串在原语的起始位置+1到原语的结束位置的子串便得到原语删除了最外层括号的字符串，拼接，即可解出答案。
+
+
+详细代码+注释：
+
+class Solution {
+    public String removeOuterParentheses(String S) {
+        StringBuilder ans = new StringBuilder();
+        Stack<Character> stack = new Stack<>();
+
+        int start = 0;// 初始化原语的起始位置
+        int end = 0;// 初始化原语的结束位置
+        boolean flag = false;// 标志每个原语
+
+        for (int i = 0;i < S.length();i++) {
+            char ch = S.charAt(i);
+
+            if (ch == '(') {// 遇到左括号，入栈
+                stack.push(ch);
+                if (!flag) {// 遇到的第一个左括号，是原语的开始位置，记录下原语开始位置
+                    start = i;
+                    flag = true;
+                }
+            }
+
+            if (ch == ')') {// 遇到右括号，出栈
+                stack.pop();
+                if (stack.isEmpty()) {// 当栈空的时候，找到了一个完整的原语
+                    end = i;// 记录下结束位置
+                    ans.append(S.substring(start + 1,end));// 去掉原语的最外层括号，并追加到答案中
+                    flag = false;// 置标志为false，往后接着找下一个原语
+                    start = end;// 往后找，再次初始化原语开始位置
+                }
+            }
+        }
+
+        return ans.toString();
+    }
+}
+
+方法二
+class Solution {
+    public String removeOuterParentheses(String S) {
+        StringBuilder sb = new StringBuilder();
+        int level = 0;
+        for (char c : S.toCharArray()) {
+            if (c == ')') --level;
+            if (level >= 1) sb.append(c);
+            if (c == '(') ++level;
+        }
+        return sb.toString();
+    }
+}
+
+Python
+*************************************************************
+方法一
+思路介绍：
+result字符串保存结果
+遍历字符串
+左括号入栈：若入栈后栈的长度大于1，即该左括号不是原语首个左括号，结果加入'('
+右括号出栈：若出栈后栈的长度大于0，即该右括号不是原语末个右括号，结果加入')'
+
+
+class Solution:
+    def removeOuterParentheses(self, S: str) -> str:
+        stack = []
+        result = ''
+        for i in S:
+            if i == '(':
+                stack.append(i)
+                if len(stack) > 1:
+                    result += '('
+            else:
+                stack.pop()
+                if len(stack) != 0:
+                    result += ')'
+        return result
+
+方法二
+解法一 : 计数法（找规律）
+基本思路：设置一个计数器 count，左括号 +1，右括号减 1，等于 0 则找到外括号的终点。并且 0 后面的一个括号肯定也是外括号，可以直接跳过。
+
+i	count
+(	1
+(	2
+)	1
+(	2
+)	1
+)	0
+(	1
+(	2
+)	1
+)	0
+代码如下：
+
+Python
+
+class Solution(object):
+    def removeOuterParentheses(self, S):
+        """
+        :type S: str
+        :rtype: str
+        """
+        target =''
+        count, i = 1, 1
+        while i< len(S):
+            count += 1 if S[i]=="(" else -1
+            if count == 0:
+                i += 2
+                count += 1
+                continue
+            target += S[i]
+            i += 1
+        return target
+        
+解法二 ：双指针法
+一个指针记录最外层左括号的位置，一个指针记录最外层右括号的位置，当匹配到的时候，再把字符串切片相加。
+
+代码如下：
+
+Python
+
+class Solution(object):
+    def removeOuterParentheses(self, S):
+        """
+        :type S: str
+        :rtype: str
+        """
+        target =''
+        count,p,q= 0,0,0
+        while q< len(S):
+            count += 1 if S[q]=="(" else -1
+            if count == 0:
+                S = S[0:p] + S[p+1:q]+ S[q+1:]
+                q = q-1
+                p = q
+                continue
+            q += 1
+        return S
+        
+解法三 ：自定义栈法
+既然这个题目归到栈一类了，就加一个栈的方法。栈的定义是基于链接表。方法参考了评论。空间复杂度无敌，超过 100%，时间复杂度一般，30% 左右。
+
+代码如下：
+
+Python
+
+class LNode():
+    def __init__(self,elem,_next=None):
+        self.elem = elem
+        self.next = _next
+        
+class StackUnderflow(ValueError): #栈下溢，空栈访问
+    pass
+
+class LStack(): #基于链接表技术实现的栈类，用LNode作为结点
+    def __init__(self):
+         self._top = None
+    def is_empty(self):
+        return self._top is None
+    def top(self):
+        if self._top is None:
+            raise StackUnderflow("in LStack.top()")
+        return self._top.elem
+    def push(self,elem):
+        self._top = LNode(elem,self._top)
+    def pop(self):
+        if self._top is None:
+            raise StackUnderflow("in LStack.pop()")
+        p = self._top
+        self._top = p.next
+        return p.elem
+
+    
+class Solution(object):
+    def removeOuterParentheses(self, S):
+        stack = LStack()
+        count = 0
+
+或者
+class Solution:
+    def removeOuterParentheses(self, S: str) -> str:
+        mark = 0
+        stack = []
+        for s in S:
+            if s == '(':
+                if mark != 0:
+                    stack.append(s)
+                mark += 1
+            if s == ')':
+                mark -= 1
+                if mark != 0:
+                    stack.append(s)
+        return ''.join(stack)
+
+
