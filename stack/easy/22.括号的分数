@@ -1,0 +1,582 @@
+给定一个平衡括号字符串 S，按下述规则计算该字符串的分数：
+
+() 得 1 分。
+AB 得 A + B 分，其中 A 和 B 是平衡括号字符串。
+(A) 得 2 * A 分，其中 A 是平衡括号字符串。
+ 
+
+示例 1：
+
+输入： "()"
+输出： 1
+示例 2：
+
+输入： "(())"
+输出： 2
+示例 3：
+
+输入： "()()"
+输出： 2
+示例 4：
+
+输入： "(()(()))"
+输出： 6
+ 
+
+提示：
+
+S 是平衡括号字符串，且只含有 ( 和 ) 。
+2 <= S.length <= 50
+
+C++
+class Solution {
+public:
+    int scoreOfParentheses(string S) {
+        stack<int> st;
+        int size = S.size();
+
+        for(int i = 0; i < size; i++){
+            if(S[i] == '(') st.push(0);
+            else{
+                if(st.top() == 0){
+                    st.pop();
+                    st.push(1);
+                }
+                else{
+                    int temp = 0;
+                    while(st.top() != 0){
+                        temp += st.top();
+                        st.pop();
+                    }
+
+                    st.pop();
+                    st.push(temp*2);
+                }
+            }
+        }
+
+        int res = 0;
+        while(!st.empty()){
+            res += st.top();
+            st.pop();
+        }
+
+        return res;
+    }
+};
+
+C++
+**********************************************************
+方法一
+Solution one
+  有关匹配问题 与 括号问题 可以用回溯+dfs解决(栈和dfs同源在我看来差不多)
+  在我看到这种括号问题的时候，我就觉得是dfsdfs，用dfs解决这种问题的核心就是，怎么通过搜索一步步把问题给分解化，显然这个题目是对于不同的情况进行讨论，在这种讨论过程中来思考如何将问题给降级！
+解题思路
+
+  思考如何构建dfs函数,XX dfs(xxxxx),我觉得这一步是很多题解忽略的方面，直接给出了dfs函数。在这里我们需要的是一个值,而且这个值是可以由多个值组合而成的,因此我首先认为应该是int dfs(xxxxx),其次在我们在这个函数中我们需要知道的信息为:
+    1.现在处理的字符位置 2.在第几个括号下 3目前的值是多少。 
+    最后推得dfs函数为→int dfs(int cur, int l, int now)。
+  思考在不同情况下如何进一步搜索：(设字符串为S)
+S[cur] = '('  我们进往更深层次进行搜索 
+S[cur] = ')'  A 假如到了末端,直接返回值val 
+              B 假如S[cur + 1]==')',我们把责任丢给下一个')',让他去处理其他情况
+              C 假如S[cur + 1]=='(',我们计算已经闭合的括号，并继续处理下一个阶段
+
+ 最终代码如下:
+
+class Solution {
+    string ss;
+public:
+    int dfs(int cur, int l, int now){
+        if (ss[cur] == '(') return dfs(cur + 1, l + 1, now);
+        else {
+            int val = now == 0 ? 1 : 2 * now;
+            if (cur == ss.size() - 1) return val; // 结束啦！
+            if (ss[cur + 1] == '(') return pow(2, l - 1) * val + dfs(cur + 1, l - 1, 0); // 分解问题
+            if (ss[cur + 1] == ')') return dfs(cur + 1, l - 1, val);// 把责任丢给下一个)
+        }
+        return 0;
+    }
+    
+    int scoreOfParentheses(string S) {
+        ss.swap(S);
+        return dfs(0, 0, 0);
+    }
+};
+
+Solutiontwo
+
+ 思考下之后发现核心计算点就在于封闭的括号，每当一个括号封闭时，我们都可以通过他所在的层次直接计算出来！
+ 衍生一下得到了顺序遍历直接搞定的方法其:计算核心为计算()：
+
+
+class Solution {
+public:
+    int scoreOfParentheses(string S) {
+        int deep(0), ans(0);
+        for (int i = 0; i < S.size(); ++ i){
+            deep = S[i] == '(' ? deep + 1 : deep - 1;
+            if (S[i] == ')' && S[i - 1] == '(') ans += 1 << deep;
+        }
+
+        return ans;
+    }
+};
+
+方法二
+栈
+class Solution {
+public:
+    int scoreOfParentheses(string S) {
+        stack<int> s;       
+        for(char c:S){      
+            if(c=='('){     //遇到左括号入栈，用0模拟
+                s.push(0);
+            }
+            else{       //遇到右括号进行判断       
+                if(s.top()==0){     //栈顶为0即栈顶为左括号，此时为()的情况，得1分     
+                    s.pop();        
+                    s.push(1);
+                }
+                else{       //栈顶不为左括号即为(ABC)的情况，得分为(A+B+C)*2
+                    int inScore=0;
+                    while(s.top()!=0){
+                        inScore+=s.top();
+                        s.pop();
+                    }
+                    s.pop();
+                    s.push(inScore*2);
+                }
+            }
+        }
+        int score=0;
+        while(!s.empty()){      //最后栈内都是分数，没有括号了，求和即可
+            score+=s.top();
+            s.pop();
+        }
+        return score;
+    }
+};
+
+或者
+栈
+维护一个栈，栈内元素表示该对括号内包含的子括号的分数：
+（1）遇到左括号，入栈，初试化括号内的分数为0；
+（2）遇到右括号，出栈，出栈前的栈顶元素值为当前一对括号包含的所有子括号的分数，判断该score是否为0：
+
+score==0,表示当前括号内没有嵌套，应当向上将包含该括号的上一级括号的分数st.top()+1——如果栈为空，则直接最终结果ans+=1;
+score>0,表示当前括号内有嵌套的分数为score，更新栈顶元素（包含当前括号的上一级括号分数）st.top()+2score —— 如果栈为空，则直接最终结果ans+=2score；
+时间复杂度：O(n)
+
+class Solution {
+public:
+    int scoreOfParentheses(string S) {
+        stack<int> st;
+        int ans=0;
+        for(int i=0;i<S.length();i++){
+            if(S[i]=='('){
+                st.push(0);
+            }else{
+                int score=st.top();st.pop();
+                if(score==0){
+                    if(st.empty()) ans+=1;
+                    else st.top()+=1;
+                }else{
+                    if(st.empty()) ans+=2*score;
+                    else st.top()+=2*score;
+                }
+            }
+        }
+        return ans;
+    }
+};
+
+
+
+方法三
+深度优先搜索
+class Solution {
+public:
+    int dfs(const string& s, int l, int r) {
+        if (l >= r) return 0;
+        int res = 0;
+        int c = 0;
+        int u = l;
+        int v = l;
+        while (v <= r) {
+            c += s[v] == '(' ? 1 : -1;
+            if (c == 0) {
+                res += (v - u > 1) ? (2 * dfs(s, u + 1,  v - 1)) : 1;
+                u = v + 1;
+            }
+            ++v;
+        }
+        return res;
+    }
+    int scoreOfParentheses(string S) {
+        return dfs(S, 0, S.size() - 1);
+    }
+};
+
+
+Java
+******************************************************************
+方法一：分治
+对于一个字符串 S，我们将左括号 ( 记为 1，右括号记为 -1，如果 S 的某一个非空前缀对应的和为 0，那么这个前缀就是一个平衡括号字符串。我们遍历字符串 S，得到若干个前缀和为 0 的位置，就可以将字符串拆分为 S = P_1 + P_2 + ... + P_n，其中每一个 P_i 都是一个平衡括号字符串。这样我们就可以分别计算每一个 P_i 的分数再相加，即 score(S) = score(P_1) + score(P_2) + ... + score(P_n)。
+
+对于一个不可拆分的平衡括号字符串，如果它为 ()，那么就得 1 分，否则它的最外层一定有一对左右括号，可以将这对括号去除后继续进行拆分，再将得到的分数乘 2。
+
+class Solution {
+
+    public int scoreOfParentheses(String S) {
+        return F(S, 0, S.length());
+    }
+
+    public int F(String S, int i, int j) {
+        //Score of balanced string S[i:j]
+        int ans = 0, bal = 0;
+
+        // Split string into primitives
+        for (int k = i; k < j; ++k) {
+            bal += S.charAt(k) == '(' ? 1 : -1;
+            if (bal == 0) {
+                if (k - i == 1) ans++;
+                else ans += 2 * F(S, i+1, k);
+                i = k+1;
+            }
+        }
+
+        return ans;
+    }
+}
+复杂度分析
+
+时间复杂度：O(N^2)，其中 N 是字符串 S 的长度，在最坏的情况下，字符串 S 为 (((((((....)))))))，它需要拆分 O(N) 次，每次遍历字符串的时间复杂度也为 O(N)。
+
+空间复杂度：O(N)。
+
+方法二：栈
+字符串 S 中的每一个位置都有一个“深度”，即该位置外侧嵌套的括号数目。例如，字符串 (()(.())) 中的 . 的深度为 2，因为它外侧嵌套了 2 层括号：(__(.__))。
+
+我们用一个栈来维护当前所在的深度，以及每一层深度的得分。当我们遇到一个左括号 ( 时，我们将深度加一，并且新的深度的得分置为 0。当我们遇到一个右括号 ) 时，我们将当前深度的得分乘二并加到上一层的深度。这里有一种例外情况，如果遇到的是 ()，那么只将得分加一。
+
+下面给出了字符串 (()(())) 每次对应的栈的情况：
+
+[0, 0] (
+[0, 0, 0] ((
+[0, 1] (()
+[0, 1, 0] (()(
+[0, 1, 0, 0] (()((
+[0, 1, 1] (()(()
+[0, 3] (()(())
+[6] (()(()))
+
+public int scoreOfParentheses(String S) {
+    Stack<Integer> stack = new Stack();
+    stack.push(0); // The score of the current frame
+
+    for (char c: S.toCharArray()) {
+        if (c == '(')
+            stack.push(0);
+        else {
+            int v = stack.pop();
+            int w = stack.pop();
+            stack.push(w + Math.max(2 * v, 1));
+        }
+    }
+
+    return stack.pop();
+}
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是字符串 S 的长度。
+
+空间复杂度：O(N)，为栈的大小。
+
+方法三：统计核心的数目
+事实上，我们可以发现，只有 () 会对字符串 S 贡献实质的分数，其它的括号只会将分数乘二或者将分数累加。因此，我们可以找到每一个 () 对应的深度 x，那么答案就是 2^x 的累加和。
+
+class Solution {
+
+    public int scoreOfParentheses(String S) {
+        int ans = 0, bal = 0;
+        for (int i = 0; i < S.length(); ++i) {
+            if (S.charAt(i) == '(') {
+                bal++;
+            } else {
+                bal--;
+                if (S.charAt(i-1) == '(')
+                    ans += 1 << bal;
+            }
+        }
+
+        return ans;
+    }
+}
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是字符串 S 的长度。
+
+空间复杂度：O(1)。
+
+方法二
+解题思路
+遍历字符串S中每个字符
+1.若当前字符为（，直接入栈
+2.若当前字符为）
+2.1若前一个字符为（，加“2的n-1次方”分（n为栈的深度）。然后弹出一个字符。
+2.2若前一个字符为），直接弹出一个字符。
+
+代码
+
+class Solution {
+    public int scoreOfParentheses(String S) {
+		int score = 0;
+		int length = S.length();
+		Stack<Character> stack = new Stack<>();
+		
+		for(int i=0; i<length; i++){
+			char temp = S.charAt(i);
+			if(temp=='(')
+				stack.add(temp);
+			else{
+				if(S.charAt(i-1)=='('){
+					score += Math.pow(2, stack.size()-1);
+					stack.pop();
+				}else{
+					stack.pop();
+				}
+			}
+			
+		}
+		
+		return score;
+    }
+}
+
+方法三
+递归
+解题思路
+创建 pair[] 数组记录配对的括号的位置
+
+代码
+class Solution {
+    public int scoreOfParentheses(String S) {
+        if (S == null || S.length() == 0) return 0;
+        S = '(' + S + ')';
+        int len = S.length();
+        // pair[i] 表示和 S.charAt(i) 配对 的括号的位置
+        int[] pair = new int[len];
+        LinkedList<Integer> stack = new LinkedList<>();
+        for (int i = 0; i < len; i++) {
+            char c = S.charAt(i);
+            if (c == '(') {
+                stack.add(i);
+            } else {
+                int top = stack.removeLast();
+                pair[top] = i;
+                pair[i] = top;
+            }
+        }
+        return sum(pair, 0, len - 1) >> 1;
+    }
+
+    private int sum(int[] pair, int left, int right) {
+        if (left + 1 == right) {
+            return 1;
+        }
+        int res = 0;
+        int index = left + 1;
+        while (index < right) {
+            int target = pair[index];
+            res += 2 * sum(pair, index, target);
+            index = target + 1;
+        }
+        return res;
+    }
+
+}
+
+或者
+
+   public int scoreOfParentheses(String S) {
+        char[] arr = S.toCharArray();
+        return helper(arr, 0, arr.length);
+    }
+
+    private int helper(char[] arr, int start, int end){
+        if(end - start == 2) return 1;
+
+        int toMatch = 1,  idx = start + 1;
+        //找到最后一个匹配的括号
+        while (idx < end && toMatch > 0) {
+            char cc = arr[idx];
+            if (cc == '(') toMatch++; //记录左右括号匹配个数
+            if (cc == ')') toMatch--;
+            idx++;
+        }
+
+
+        if(idx == end)
+            return 2*helper(arr,start+1,idx-1);
+        else {
+            return helper(arr,start,idx) + helper(arr, idx, end);
+        }
+    }
+
+Python
+***********************************************************
+方法一：分治
+对于一个字符串 S，我们将左括号 ( 记为 1，右括号记为 -1，如果 S 的某一个非空前缀对应的和为 0，那么这个前缀就是一个平衡括号字符串。我们遍历字符串 S，得到若干个前缀和为 0 的位置，就可以将字符串拆分为 S = P_1 + P_2 + ... + P_n，其中每一个 P_i 都是一个平衡括号字符串。这样我们就可以分别计算每一个 P_i 的分数再相加，即 score(S) = score(P_1) + score(P_2) + ... + score(P_n)。
+
+对于一个不可拆分的平衡括号字符串，如果它为 ()，那么就得 1 分，否则它的最外层一定有一对左右括号，可以将这对括号去除后继续进行拆分，再将得到的分数乘 2。
+
+
+class Solution(object):
+    def scoreOfParentheses(self, S):
+        def F(i, j):
+            #Score of balanced string S[i:j]
+            ans = bal = 0
+
+            #Split string into primitives
+            for k in xrange(i, j):
+                bal += 1 if S[k] == '(' else -1
+                if bal == 0:
+                    if k - i == 1:
+                        ans += 1
+                    else:
+                        ans += 2 * F(i+1, k)
+                    i = k+1
+
+            return ans
+
+        return F(0, len(S))
+
+方法二：栈
+字符串 S 中的每一个位置都有一个“深度”，即该位置外侧嵌套的括号数目。例如，字符串 (()(.())) 中的 . 的深度为 2，因为它外侧嵌套了 2 层括号：(__(.__))。
+
+我们用一个栈来维护当前所在的深度，以及每一层深度的得分。当我们遇到一个左括号 ( 时，我们将深度加一，并且新的深度的得分置为 0。当我们遇到一个右括号 ) 时，我们将当前深度的得分乘二并加到上一层的深度。这里有一种例外情况，如果遇到的是 ()，那么只将得分加一。
+
+下面给出了字符串 (()(())) 每次对应的栈的情况：
+
+[0, 0] (
+[0, 0, 0] ((
+[0, 1] (()
+[0, 1, 0] (()(
+[0, 1, 0, 0] (()((
+[0, 1, 1] (()(()
+[0, 3] (()(())
+[6] (()(()))
+
+
+class Solution(object):
+    def scoreOfParentheses(self, S):
+        stack = [0] #The score of the current frame
+
+        for x in S:
+            if x == '(':
+                stack.append(0)
+            else:
+                v = stack.pop()
+                stack[-1] += max(2 * v, 1)
+
+        return stack.pop()
+
+方法三：统计核心的数目
+事实上，我们可以发现，只有 () 会对字符串 S 贡献实质的分数，其它的括号只会将分数乘二或者将分数累加。因此，我们可以找到每一个 () 对应的深度 x，那么答案就是 2^x 的累加和。
+
+
+
+class Solution(object):
+    def scoreOfParentheses(self, S):
+        ans = bal = 0
+        for i, x in enumerate(S):
+            if x == '(':
+                bal += 1
+            else:
+                bal -= 1
+                if S[i-1] == '(':
+                    ans += 1 << bal
+        return ans
+
+
+方法四
+方法1——计数法
+本题难点在于如何处理内层的解，笔者的思路为将所有的完整括号全部提取出来，最后加总，这样就避开了先求内层解的问题。
+记录left的频数，因为本题S一定是平衡括号字符，所以不需要管left是不是小于0。因此，遇见'('则left+1，而只要碰到')'一直向右走直到遇见'('为止(期间left一直-1，指针滑动)，遇见'('设定score的初始值为1，指针滑动过程中每滑动一次score*2，内层循环终止将score和2^left的乘积累加到res中。
+ps：上述方法描述了求解一个子问题的过程，一个S中可能存在很多个这样的子问题，将所有子问题的解加总即为最终答案
+
+代码
+
+class Solution:
+    def scoreOfParentheses(self, S: str) -> int:
+        left = 0
+        i = 0
+        res = 0
+        while i < len(S):
+            if S[i] == '(':
+                left += 1
+                i += 1
+            else:
+                score = 1
+                left -= 1
+                i += 1
+                while i < len(S) and S[i] != '(':
+                    left -= 1
+                    i += 1
+                    score *= 2
+                res += score * 2**left # 核心，left的余数决定了嵌套的层数
+        return res
+复杂度分析
+时间复杂度：O(N)
+空间复杂度：O(1)
+
+方法2——栈(官解思路)
+最内层的结果需要先计算出来，符合栈的先进后出特点，遇到左括号扩展0，遇到右括号向前累加2*stack.pop()，利用max函数规避'()'的情况
+
+代码
+
+class Solution:
+    def scoreOfParentheses(self, S: str) -> int:
+        stack = [0]
+        
+        for i in S:
+            if i == '(':
+                stack.append(0)
+            else:
+                x = stack.pop()
+                stack[-1] += max(2*x, 1)
+        
+        return stack[0]
+复杂度分析
+时间复杂度：O(N)
+空间复杂度：O(1)
+
+方法五
+以示例4的输入为例，因为4包含了空括号、括号的相加和嵌套。
+
+不管括号怎么画，只要括号是合法的，所有的值一定来自最内部的空括号，只有把()变成单位1，才能在1的基础上做加法和乘法。所以：
+
+先把所有的()赋值为1，注意为了后面eval()方便1前面带上加号：
+"( () ( () ) )" = "( +1 ( +1 ) )"
+
+现在，已经没有空的括号了，也就是说碰见左括号一定是做乘法运算，即所有的(abc)值为2*abc = 2 * (abc)，幸亏是先乘除后加减。。。也就是把 ( 替换为 2*(，同样为了最后的eval()方便，给2前面添个加号：
+"( +1 ( +1 ) )" = " +2*( +1 +2*( +1 ) )"
+
+最后eval()：
+eval(" +2*( +1 +2*( +1 ) )") = 6
+
+
+class Solution(object):
+    def scoreOfParentheses(self, S):
+        """
+        :type S: str
+        :rtype: int
+        """
+        num1 = S.replace('()', '+1')
+        num2 = num1.replace('(', '+2*(')
+        return eval(num2)
+
+
+
+
