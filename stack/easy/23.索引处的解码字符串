@@ -1,0 +1,742 @@
+给定一个编码字符串 S。请你找出 解码字符串 并将其写入磁带。解码时，从编码字符串中 每次读取一个字符 ，并采取以下步骤：
+
+如果所读的字符是字母，则将该字母写在磁带上。
+如果所读的字符是数字（例如 d），则整个当前磁带总共会被重复写 d-1 次。
+现在，对于给定的编码字符串 S 和索引 K，查找并返回解码字符串中的第 K 个字母。
+
+ 
+
+示例 1：
+
+输入：S = "leet2code3", K = 10
+输出："o"
+解释：
+解码后的字符串为 "leetleetcodeleetleetcodeleetleetcode"。
+字符串中的第 10 个字母是 "o"。
+示例 2：
+
+输入：S = "ha22", K = 5
+输出："h"
+解释：
+解码后的字符串为 "hahahaha"。第 5 个字母是 "h"。
+示例 3：
+
+输入：S = "a2345678999999999999999", K = 1
+输出："a"
+解释：
+解码后的字符串为 "a" 重复 8301530446056247680 次。第 1 个字母是 "a"。
+ 
+
+提示：
+
+2 <= S.length <= 100
+S 只包含小写字母与数字 2 到 9 。
+S 以字母开头。
+1 <= K <= 10^9
+题目保证 K 小于或等于解码字符串的长度。
+解码后的字符串保证少于 2^63 个字母。
+
+C++
+class Solution {
+public:
+    string decodeAtIndex(string S, int K) {
+        string res = "";
+        long long int size = 0;
+
+        if(S.empty()) return res;
+
+        int i = 0;
+        for(; i < S.length();i++){
+            if(isalpha(S[i])) size++;
+            else{
+                int num = S[i]-'0';
+                size = size * num;
+            }
+
+            if(size >= K) break;
+        }
+
+        for(int j = i; j >= 0; j--){
+            if(isdigit(S[j])){
+                int n = S[j] - '0';
+                size = size / n;
+                K = K % size;
+            }
+            else{
+                if(K % size == 0) return string(1,S[j]);
+                size--;
+            }
+        }
+
+        return res;
+    }
+};
+
+C++
+************************************************************
+解题思路
+题目的最后一个测试用例告诉我们，不能简单的利用string去保存已经解码的字符串。应该index循环的方式求解。
+题目要读清楚，不是求得后面所有数字连起来的10进制数，而是一位一位的翻倍；
+
+首先需要一个遍历到当前为止，前面字符串长度变量currentLength，不管是(asas)或者是(as2)都是有长度的，记录下长度大于K的那个长度，注意这里变量需要使用long long类型；
+然后在往前回溯，currentLength / num[i]求得i数字之前的长度总和；然后K在对当前的长度取余，看是需要返回哪一个index；最后利用%看K是否能正好能被整除，也即是K是否能正好分完。
+
+代码
+class Solution {
+public:
+	bool IsDigital(char numChr) 
+	{
+		if (numChr > '0' && numChr <= '9') {
+			return true;
+		}
+		return false;
+	}
+    string decodeAtIndex(string S, int K) {
+		if (S.empty()) {
+			return "";
+		}
+		long long currentStrLength = 0;
+		int index = 0;
+		for (; index < S.length(); index++) {
+			if (IsDigital(S[index])) {
+				currentStrLength *= (S[index] - '0');
+			} else {
+				currentStrLength++;
+			}
+			if (currentStrLength >= K) {
+				break;
+			}
+		}
+		for (int j = index; j >= 0; j--) {
+			if (IsDigital(S[j])) {
+				currentStrLength = currentStrLength / (S[j] - '0');
+				K = K % currentStrLength;
+			} else {
+				if (K % currentStrLength == 0) {
+					return string(1, S[j]);
+				}
+				currentStrLength--;
+			}
+		}
+        return "";
+    }
+};
+
+方法二
+解题思路
+相对于K<10^9来说，字符串长度s.length<100是非常小的，因此时间复杂度方面不用过于在意O(s.length)这个项
+然后是我的主要思路：
+利用一个变量num记录解码后的字符串长度，当数字出现时，判断解码后字符串长度是否大于K，如果小于，继续增加字符串长度，如果大于，说明K位在前面的串中，首先将当前字符串中数字造成的重写删去，即K%num,进行迭代操作。
+然后是K恰好等于为一个整字符串的末位，使用一个变量x记录字符串末位数字即可解决。
+class Solution {
+public:
+    string decodeAtIndex(string S, int K) {
+        int num = 0, i = 0;
+        string ans="";
+        char x;
+        while(i<S.length())
+        {
+            if(S[i]>='0' && S[i]<='9')
+            {
+                if ((S[i]-'0') < K*1.0/num)
+                {
+                    num *= (S[i]-'0');
+                }
+                else
+                {
+                    K %= num;
+                    if (K == 0)
+                    {
+                        ans += x;
+                        return ans;
+                    }
+                    num = 0;
+                    i = 0;
+                    continue;
+                }
+            }
+            else
+            {
+                num++;
+                x = S[i];
+                if(num == K)
+                {
+                    ans+=S[i];
+                    return ans;
+                }
+            }
+            i++;
+        }
+        return ans;
+
+    }
+};
+
+方法三
+//执行用时 :0 ms, 在所有 C++ 提交中击败了100.00%的用户
+//内存消耗 :8.3 MB, 在所有 C++ 提交中击败了85.71%的用户
+class Solution {
+public:
+    map<long long,long long> rec;//记录每个下标对应的长度
+    long long len,cnt;
+    string res;//记录走过的路径
+    string decodeAtIndex(string s, int k) {
+        for(int i=0;i<s.length();i++) {
+            if(isalpha(s[i])) {
+                res.push_back(s[i]);
+                len++;//len表示当前长度
+                rec[i] = len;
+                if(len==k) return string(1,s[i]);//如果长度正好为k直接返回字母
+            }else {
+                cnt = len * (s[i]-'0');//翻s[i]倍后的长度
+                if(cnt<k) {//翻s[i]倍后的当前长度没有到达k
+                    res.push_back(s[i]);
+                    rec[i] = len = cnt;
+                }else {//翻s[i]倍后的当前长度大于等于k时即可回溯查找
+                    cnt = k%len;
+                    if(!cnt) cnt = len;
+                    i--;
+                    while(i>=0&&rec[i]!=cnt) {
+                        if(isdigit(res[i])) {
+                           cnt %= rec[i-1];
+                           if(!cnt) cnt = rec[i-1];
+                        }
+                        i--;
+                    }
+                    while(i>=0&&isdigit(res[i])) i--;
+                    return string(1,res[i]);
+                }
+            }
+        }
+        return "";
+    }
+};
+
+方法四
+解题思路
+虽然可以用展开的方法求解，但是展开的缺点：
+(1)当测试样例长度大的时候的时候如"yb23c2343423423"会出现TLE;
+(2)当测试样例复杂的时候如"y959q969u3hb22odq595"会出现内存溢出的现象。
+
+结果一定在S中，因此我们没有必要把S展开再求。想办法在原始S中求第K个:
+1、先遍历一遍算出展开S的长度为len，
+2、根据下标以及模运算的特性，先将K=K-1，
+3、所求位置为k%S。因此倒序遍历S，
+4、遇见数字len=len/(S[i]-'0')；遇见字母len=len-1(此时len表示字母在当前到初始位置的展开字符串的下标)，
+5、直到K==len(下标重合)，输出此处字符。
+
+代码
+
+class Solution {
+public:
+    string decodeAtIndex(string S, int K) {
+        long long int len = 0;
+        int l = S.size();
+        string ans;
+        K=K-1;
+        for(int i = 0 ; i < l ; i++){
+            if(S[i]<='9' && S[i]>='2')len *= (S[i]-'0');
+            else len++;
+        }
+        //cout<<len<<endl;
+        for(int i = l-1 ; i >= 0 ; i--){
+            if(S[i]<='9' && S[i]>='2'){
+                len /= (S[i]-'0');
+                K %= len;
+                //cout<<len<<endl;
+            }
+            else {
+                len--;
+            }
+            if(K == len){
+                ans += S[i];
+                return ans;
+            }
+        }
+        return ans;
+    }
+};
+
+
+方法五
+方法：逆向工作法
+思路
+
+如果我们有一个像 appleappleappleappleappleapple 这样的解码字符串和一个像 K=24 这样的索引，那么如果 K=4，答案是相同的。
+
+一般来说，当解码的字符串等于某个长度为 size 的单词重复某些次数（例如 apple 与 size=5 组合重复6次）时，索引 K 的答案与索引 K % size 的答案相同。
+
+我们可以通过逆向工作，跟踪解码字符串的大小来使用这种洞察力。每当解码的字符串等于某些单词 word 重复 d 次时，我们就可以将 k 减少到 K % (Word.Length)。
+
+算法
+
+首先，找出解码字符串的长度。之后，我们将逆向工作，跟踪 size：解析符号 S[0], S[1], ..., S[i] 后解码字符串的长度。
+
+如果我们看到一个数字 S [i]，则表示在解析 S [0]，S [1]，...，S [i-1] 之后解码字符串的大小将是 size / Integer(S[i])。 否则，将是 size - 1。
+
+C++JavaPython
+
+class Solution {
+public:
+    string decodeAtIndex(string S, int K) {
+        long size = 0;
+        int N = S.size();
+
+        // Find size = length of decoded string
+        for (int i = 0; i < N; ++i) {
+            if (isdigit(S[i]))
+                size *= S[i] - '0';
+            else
+                size++;
+        }
+
+        for (int i = N-1; i >=0; --i) {
+            K %= size;
+            if (K == 0 && isalpha(S[i]))
+                return (string) "" + S[i];
+
+            if (isdigit(S[i]))
+                size /= S[i] - '0';
+            else
+                size--;
+        }
+        return "";
+    }
+};
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是 S 的长度。
+空间复杂度：O(1)。
+
+
+Java
+*************************************************************************
+方法一
+先計算字串展開總長度，再由原編碼字串由後向前作等價裁減
+
+解题思路
+閱讀完 官方題解 後，不太清楚其解題思路，故理解程式碼後，用自己的方式再描述一次。
+
+將編碼字串完整展開後，可能產出巨量長度的字串，超出內存限制，造成求解失敗。
+
+因為展開後字串可能包含大量重覆子字串，我們可以由後向前(由右向左)透過等價交換，將重覆字串作裁減後求解。
+
+舉例來說，假設編碼字串為 ab2cd3 且 K=10 則處理方式如下:
+先計算展開後字串總長度為 18 。
+
+
+size=((2*2)+2)*3=18;
+因為我們僅知展開字串長度，並不知展開字串內的每一個字元為何，我們可以由編碼字串由後向前反推。
+
+
+sNo = size ;// sNo: 代表目前展開字串的第 sNo 個字元
+[ a b 2 c d 3 ] // 我們由後向前計算, sNo=18, K=10  
+            ^-- 數字3代表展開字串內(1~sNo)有重覆3次,我們直接作裁減
+            ^-- sNo=18, sNo/3=6, 字元18和字元6會相同, 故將 sNo 改成 6    
+            ^-- 因上述裁減操作, K 需作等價交換 K=K%sNo, K=10%6=4
+經上述操作，己將 sNo=7~18 作裁減，K等價交換成 4，繼續由後向前檢查
+
+
+[ a b 2 c d 3 ] // 我們由後向前計算, sNo=6, K=4 
+      | | ^-- sNo=6, 因 K!=sNo 故需再向前檢查
+      | ^---- sNo=5, 因 K!=sNo 故需再向前檢查
+      ^------ sNo=4, 數字2代表展開字串內(1~sNo)有重覆2次,我們直接作裁減
+      ^------ sNo=sNo/2=2, K=K%sNo=4%2=0
+經上述操作，己將 sNo=3~18 作裁減，K等價交換成 0，繼續由後向前檢查。
+另外，當 K=0 時表示 K 為 1~sNo間最後一個字元
+
+
+[ a b 2 c d 3 ] // 我們由後向前計算, sNo=2, K=0
+    ^--------- 若當前不為數字，且 K==0 或 sNo==K 表當前字元為解
+代码
+
+class Solution {
+    public String decodeAtIndex(String S, int K) {
+        char[] chs=S.toCharArray();
+        long size=0;//用來計算 展開後的字串總長 
+        for(char ch:chs){
+            if(Character.isDigit(ch)) size*=(int)(ch-'0');
+            else size++;
+        }
+        if(K>size) return null;//若 K 大於字串長度則不存在解
+        long sNo=size;/* sNo:用來指向展開後字串的第幾個字元(由1開始) */
+        for(int ix=chs.length-1;ix>=0;ix--){// 利用解碼前字串, 由後向前計算 K 的字元或作等價對換
+            char ch=chs[ix];
+            // 當等價置換後 K==0 表 1~sNo 內最後一個字元為解
+            if(K==0 && Character.isLetter(ch)) return String.valueOf(ch);
+            if(Character.isDigit(ch)){//若由後向前看到數字, 表示 sNo, 和 K 可作等價對換
+                int dgt=(int)(ch-'0');//表 0~sNo 內有重覆 dgt 次
+                sNo=sNo/dgt; // 因為重覆 dgt 次，故對 sNo 作等價交換
+                K%=sNo; // 同理 K 也可作等價交換
+            }else if( K==sNo ){//若 K==sNo 表當前字元為解
+                return String.valueOf(ch);
+            }else{//未找到解，續續向前檢查
+                sNo--;
+            }
+        }
+        return null;
+    }
+}
+
+方法二
+递归
+
+class Solution {
+    public String decodeAtIndex(String S, int K) {
+        int i, count, lastCount;
+        
+        count = 0;
+        lastCount = 0;
+        for(i = 0; i < S.length(); i++){
+            if(S.charAt(i) >= '0' && S.charAt(i) <= '9'){
+                count *= S.charAt(i) - '0';
+                //如果乘了数字以后大于等于K，则返回到上个循环节中找
+                if(count >= K)
+                    return decodeAtIndex(S, (K - 1) % lastCount + 1); //当整除的时候是找最后一个(lastCount)而不是0
+            }else{
+                count++;
+                lastCount = count;
+                if(count == K)
+                    return "" + S.charAt(i);
+            }
+        }
+        return null;
+    }
+}
+
+或者
+解题思路
+Java 递归 双百
+
+代码
+
+class Solution {
+    public String decodeAtIndex(String S, int K) {
+        int n = 0;
+
+        for (int i = 0; i < S.length(); i++) {
+            char c = S.charAt(i);
+            if (Character.isDigit(c)) {
+                int ic = c - '0';
+                if ((K - 1) / ic >= n) {
+                    n *= ic;
+                } else {
+                    return decodeAtIndex(S, (K - 1) % n + 1);
+                }
+            } else {
+                if (++n == K) {
+                    return String.valueOf(c);
+                }
+            }
+        }
+
+        return "";
+    }
+}
+
+
+
+
+方法三
+非递归
+
+解题思路
+基本思路是边扩展字符串边记录历史字符串和对应的复制次数。
+扩展字符串主要由两个操作组成：1.拼接新的字符串；2.复制原有的字符串。两种操作都有可能使字符串长度达到目标长度，对于操作1，我们在对逐个字符进行拼接时，如果长度刚好达到，则直接返回最后拼接的字符即可；对于操作2，如果在复制之后，新的字符串长度超过了目标长度，则需要进行反向操作，直到找到正确的字符。
+
+代码
+class Solution {
+    public String decodeAtIndex(String S, int K) {
+        List<String> strings = new ArrayList<>();
+        List<Integer> times = new ArrayList<>();
+        char[] chars = S.toCharArray();
+        int current = 0,index = 0;
+        boolean flag = true;
+        for (int i=0;i<chars.length;i++){
+            long temp = current;
+            char c = chars[i];
+            if (Character.isDigit(c)){
+                if (flag){
+                    strings.add(S.substring(index,i));
+                }
+                int time = c-'0';
+                temp*=time;
+                if (temp>=K){
+                    int pre = (K-1)%current+1;
+                    int m=strings.size()-1,n=times.size()-1;
+                    while (true){
+                        if (m>n){
+                            String last = strings.get(m);
+                            current-=last.length();
+                            if (current<pre)
+                                return String.valueOf(last.charAt(pre-current-1));
+                            else
+                                m--;
+                        }else {
+                            int lastTime = times.get(n);
+                            current/=lastTime;
+                            pre=(pre-1)%current+1;
+                            n--;
+                        }
+                    }
+                }
+                if (flag){
+                    flag=false;
+                    times.add(time);
+                }else{
+                    int size = times.size();
+                    times.set(size-1,times.get(size-1)*time);
+                }
+            }else {
+                if (!flag){
+                    index=i;
+                    flag=true;
+                }
+                temp++;
+                if (temp==K)
+                    return String.valueOf(c);
+            }
+            current=(int) temp;
+        }
+        return "";
+    }
+}
+
+
+方法四
+官方思路有部分情况没处理：
+
+S中数字过多过大可能的溢出问题
+优化点：我们并不需要计算出解释后总长度，只要计算到 >= K的部分的长度即可；
+
+class Solution {
+    public String decodeAtIndex(String S, int K) {
+        if (S == null || S.length() == 0) return S;
+        
+        char[] str = S.toCharArray();
+        long size = 0;
+        int index = -1;
+        for (char item : str) {
+            index++;
+            if (Character.isDigit(item))
+                size *= item - '0';
+            else size++;
+            if (size >= K) break;
+        }
+        
+        for (int i = index; i >= 0; i--) {
+            K %= size;
+            if (K == 0 && Character.isLetter(str[i])) return String.valueOf(str[i]);
+            if (Character.isDigit(str[i]))
+                size /= str[i] - '0';
+            else size--;
+        }
+
+        return "-1";
+    }
+}
+
+方法五
+方法：逆向工作法
+思路
+
+如果我们有一个像 appleappleappleappleappleapple 这样的解码字符串和一个像 K=24 这样的索引，那么如果 K=4，答案是相同的。
+
+一般来说，当解码的字符串等于某个长度为 size 的单词重复某些次数（例如 apple 与 size=5 组合重复6次）时，索引 K 的答案与索引 K % size 的答案相同。
+
+我们可以通过逆向工作，跟踪解码字符串的大小来使用这种洞察力。每当解码的字符串等于某些单词 word 重复 d 次时，我们就可以将 k 减少到 K % (Word.Length)。
+
+算法
+
+首先，找出解码字符串的长度。之后，我们将逆向工作，跟踪 size：解析符号 S[0], S[1], ..., S[i] 后解码字符串的长度。
+
+如果我们看到一个数字 S [i]，则表示在解析 S [0]，S [1]，...，S [i-1] 之后解码字符串的大小将是 size / Integer(S[i])。 否则，将是 size - 1。
+
+C++JavaPython
+
+class Solution {
+    public String decodeAtIndex(String S, int K) {
+        long size = 0;
+        int N = S.length();
+
+        // Find size = length of decoded string
+        for (int i = 0; i < N; ++i) {
+            char c = S.charAt(i);
+            if (Character.isDigit(c))
+                size *= c - '0';
+            else
+                size++;
+        }
+
+        for (int i = N-1; i >= 0; --i) {
+            char c = S.charAt(i);
+            K %= size;
+            if (K == 0 && Character.isLetter(c))
+                return Character.toString(c);
+
+            if (Character.isDigit(c))
+                size /= c - '0';
+            else
+                size--;
+        }
+
+        throw null;
+    }
+}
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是 S 的长度。
+空间复杂度：O(1)。
+
+稍微可以优化的地方，我们不需要计算解释后字符串总长度，只要计算 >= K部分即可。
+
+class Solution {
+    public String decodeAtIndex(String S, int K) {
+        if (S == null || S.length() == 0) return S;
+        
+        char[] str = S.toCharArray();
+        long size = 0;
+        int index = -1;
+        for (char item : str) {
+            index++;
+            if (Character.isDigit(item))
+                size *= item - '0';
+            else size++;
+            if (size >= K) break;
+        }
+        
+        for (int i = index; i >= 0; i--) {
+            K %= size;
+            if (K == 0 && Character.isLetter(str[i])) return String.valueOf(str[i]);
+            if (Character.isDigit(str[i]))
+                size /= str[i] - '0';
+            else size--;
+        }
+
+        return "-1";
+    }
+}
+
+
+Python
+**********************************************************
+方法一：逆向工作法
+思路
+
+如果我们有一个像 appleappleappleappleappleapple 这样的解码字符串和一个像 K=24 这样的索引，那么如果 K=4，答案是相同的。
+
+一般来说，当解码的字符串等于某个长度为 size 的单词重复某些次数（例如 apple 与 size=5 组合重复6次）时，索引 K 的答案与索引 K % size 的答案相同。
+
+我们可以通过逆向工作，跟踪解码字符串的大小来使用这种洞察力。每当解码的字符串等于某些单词 word 重复 d 次时，我们就可以将 k 减少到 K % (Word.Length)。
+
+算法
+
+首先，找出解码字符串的长度。之后，我们将逆向工作，跟踪 size：解析符号 S[0], S[1], ..., S[i] 后解码字符串的长度。
+
+如果我们看到一个数字 S [i]，则表示在解析 S [0]，S [1]，...，S [i-1] 之后解码字符串的大小将是 size / Integer(S[i])。 否则，将是 size - 1。
+
+C++JavaPython
+
+class Solution(object):
+    def decodeAtIndex(self, S, K):
+        size = 0
+        # Find size = length of decoded string
+        for c in S:
+            if c.isdigit():
+                size *= int(c)
+            else:
+                size += 1
+
+        for c in reversed(S):
+            K %= size
+            if K == 0 and c.isalpha():
+                return c
+
+            if c.isdigit():
+                size /= int(c)
+            else:
+                size -= 1
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是 S 的长度。
+空间复杂度：O(1)。
+
+
+方法二
+解题思路
+step0: 初始化 k= K-1， k为目标字符索引
+step1： 正向计算到达当前字符的时候展开的长度，当长度超过k的时候就可以停止了
+step2： 从之前停止的位置反推，k %= l 是为了持续让k在l的范围内，遇到数字l成倍缩短，遇到字符减一，直到 l == k+1返回
+
+代码
+
+class Solution(object):
+    def decodeAtIndex(self, S, K):
+        """
+        :type S: str
+        :type K: int
+        :rtype: str
+        """
+        l = 0
+        k = K - 1
+        for i in range(len(S)):
+            if S[i] >= 'a' and S[i] <= 'z':
+                l +=1
+            else:
+                l *=int(S[i])
+            if l > k:
+                break
+        if l <= k:
+            return ""
+        while i > 0:
+            k %= l
+            if S[i] >= '0' and S[i] <= '9':
+                l /= int(S[i])
+            else:
+                if l == k+1:
+                    return S[i]
+                l -= 1
+            i -= 1
+        return S[i]
+
+方法三
+解题思路
+递归解题。
+
+根据周期性结构的特点可以不断缩小K并保证字符相同。
+直到当前K落在某个字符串段区间内，返回字符即可。
+代码
+class Solution:
+    def decodeAtIndex(self, S: str, K: int) -> str:
+        ret = ''
+        def dfs(i, cnt) -> int:
+            nonlocal ret
+            if S[i] in '23456789':
+                nc = cnt * int(S[i])
+                idx = K
+                if nc < K:
+                    idx = dfs(i + 1, nc)
+                    if idx == 0:
+                        return 0
+                r = idx % cnt
+                return r if r != 0 else cnt
+
+            k = i
+            while k < len(S) and S[k] not in '23456789':
+                k += 1
+            s = S[i:k]
+            nc = cnt + len(s)
+            idx = K
+            if nc < K:
+                idx = dfs(i + len(s), nc)
+                if idx == 0:
+                    return 0
+            if cnt < idx <= cnt + len(s):
+                ret = s[idx - cnt - 1]
+                return 0
+            return idx
+
+        dfs(0, 0)
+        return ret
+
+
