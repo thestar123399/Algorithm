@@ -1,0 +1,974 @@
+给定一个用字符串表示的整数的嵌套列表，实现一个解析它的语法分析器。
+
+列表中的每个元素只可能是整数或整数嵌套列表
+
+提示：你可以假定这些字符串都是格式良好的：
+
+字符串非空
+字符串不包含空格
+字符串只包含数字0-9、[、-、,、]
+ 
+
+示例 1：
+
+给定 s = "324",
+
+你应该返回一个 NestedInteger 对象，其中只包含整数值 324。
+示例 2：
+
+给定 s = "[123,[456,[789]]]",
+
+返回一个 NestedInteger 对象包含一个有两个元素的嵌套列表：
+
+1. 一个 integer 包含值 123
+2. 一个包含两个元素的嵌套列表：
+    i.  一个 integer 包含值 456
+    ii. 一个包含一个元素的嵌套列表
+         a. 一个 integer 包含值 789
+
+C++
+/**
+ * // This is the interface that allows for creating nested lists.
+ * // You should not implement it, or speculate about its implementation
+ * class NestedInteger {
+ *   public:
+ *     // Constructor initializes an empty nested list.
+ *     NestedInteger();
+ *
+ *     // Constructor initializes a single integer.
+ *     NestedInteger(int value);
+ *
+ *     // Return true if this NestedInteger holds a single integer, rather than a nested list.
+ *     bool isInteger() const;
+ *
+ *     // Return the s
+ ingle integer that this NestedInteger holds, if it holds a single integer
+ *     // The result is undefined if this NestedInteger holds a nested list
+ *     int getInteger() const;
+ *
+ *     // Set this NestedInteger to hold a single integer.
+ *     void setInteger(int value);
+ *
+ *     // Set this NestedInteger to hold a nested list and adds a nested integer to it.
+ *     void add(const NestedInteger &ni);
+ *
+ *     // Return the nested list that this NestedInteger holds, if it holds a nested list
+ *     // The result is undefined if this NestedInteger holds a single integer
+ *     const vector<NestedInteger> &getList() const;
+ * };
+ */
+class Solution {
+public:
+    NestedInteger deserialize(string s) {
+        NestedInteger Nes;
+        string numStr = "";
+        stack<NestedInteger> st;
+        int size = s.length();
+
+        for(char c : s){
+            if(c == '[') st.push(NestedInteger());
+            else if(c == '-' || isdigit(c)){
+                if(st.empty()) return NestedInteger(stoi(s));
+                numStr += c;
+            }
+            else if(c == ']'){
+                NestedInteger cur = st.top();
+                if(numStr != "") cur.add(NestedInteger(stoi(numStr)));
+                st.pop();
+                numStr = "";
+
+                if(!st.empty()) {
+                    NestedInteger &next = st.top();
+                    next.add(cur);
+                }
+                else return cur;
+            }
+            else if(c == ','){
+                if(numStr != ""){
+                    NestedInteger &ni = st.top();
+                    ni.add(NestedInteger(stoi(numStr)));
+                    numStr = "";
+                }
+            }
+        }
+        
+        return Nes;
+    }
+};
+
+C++
+*******************************************************************
+方法一 栈
+class Solution {
+public:
+    NestedInteger deserialize(string s) {
+        NestedInteger F;
+        stack<NestedInteger> stk;
+        string temp="";
+        for(int i=0;i<s.size();i++){
+            //当遇到'['时，就创建一个NestedInteger（NI）对象，并压入栈
+            if(s[i]=='['){
+                auto NewNI=NestedInteger();
+                stk.push(NewNI);  
+            }
+            //当遇到']'时，就从栈中弹出一个NI对象，且如果前一时刻是数字的话（即temp=不为空，比如此时是'...789]'），还要将数字添加到
+            //刚弹出的来NI对象中，并清空字符串缓存；然后如果此时栈为空，说明弹出的NI对象是最外层的那个，则程序结束返回；
+            //否则，将弹出来的NI对象加入到下一个栈顶的NI对象中
+            else if(s[i]==']'){
+                NestedInteger cur=stk.top();
+                if(temp!="")
+                    cur.add(NestedInteger(stoi(temp)));
+                stk.pop();
+                if(stk.empty())
+                    return cur;
+                else{
+                    //同下，必须为引用
+                    NestedInteger& next=stk.top();
+                    next.add(cur);
+                }
+                temp="";
+            }
+            //如果该位置是数字（含负号），则将其缓存到字符串temp中
+            else if('0'<=s[i]&&s[i]<='9'||s[i]=='-'){
+                //如果该位置是数字，且栈为空，说明输入只是某数字的字符串，即没有嵌套的情况，则直接返回，比如s="324"
+                if(stk.empty())
+                    return NestedInteger(stoi(s));
+                temp+=s[i];     
+            }
+            //如果该位置是','，那么有2种情况，即'...789,'或者'[...],',显然是数字的话，需要将其添加到栈顶的NI对象中
+            else{
+                if(temp!=""){
+                    //需要注意的是，必须显示给定NI对象的引用说明，不能使用auto关键字定义cur
+                    //因为使用auto的话，stk.top()返回的是栈顶元素的副本，而我们需要对栈顶元素进行修改，必须是引用
+                    //或者是不用引用，先将栈顶元素弹出，对其修改后，再push也可
+                    NestedInteger& cur=stk.top();
+                    cur.add(NestedInteger(stoi(temp)));
+                    temp="";
+                }
+            } 
+        }
+        return F;
+    } 
+};
+
+方法二
+思路不难，最初用的是 stack<NestedInteger> ，结果时间和空间都只超过 5% 左右。
+问题出在执行 push 操作的时候执行了类拷贝成员函数，不知道 NestedInteger 拷贝是怎么实现的，特别费时。
+优化方式是使用 stack<NestedInteger*>，优化后内存消耗击败 100%，用时在 24ms 以内。
+
+NestedInteger deserialize(string s) {
+    stack<NestedInteger*> stk;
+    string numStr;
+    for (char &c : s) {
+        if (c == '[') {
+            NestedInteger *res = new NestedInteger();
+            stk.push(res);
+        } else if (c == '-' || isdigit(c)) {
+            if (stk.empty()) return NestedInteger(stoi(s));
+            else numStr.push_back(c);
+        } else if (c == ',') {
+            if (!numStr.empty()) {
+                stk.top()->add(NestedInteger(stoi(numStr)));
+                numStr = "";
+            }
+        } else {
+            if (!numStr.empty()) {
+                stk.top()->add(NestedInteger(stoi(numStr)));
+                numStr = "";
+            }
+            NestedInteger *res = stk.top();
+            stk.pop();
+            if (stk.empty()) {
+                return *res;
+            } else {
+                stk.top()->add(*res);
+            }
+        }
+    }
+    return NestedInteger();
+}
+
+方法三
+解题思路
+构建NestedInterger栈，模拟递归调用。
+
+实现：
+
+遇"["则为嵌套开始，新建NestedInterget对象。如果没有"["则表示没有嵌套，直接输出字符串表示的整数对象。
+遇"-0-9"则保存到数字字符串中。
+遇","则表示该层嵌套下的元素不止一个。且","前一定为数字或"]"，若存在数字字符串则将其转为整数后添加到该层的NestedInterger对象中。
+遇"]"则表示该层嵌套结束。且"]"前一定为数字或","，若存在数字字符串则将其转为整数后添加到该层的NestedInterger对象中。然后弹出该层的对象，若栈中仍存在对象则表示该层对象在其他对象中因此将此对象添加到新的栈顶的对象中。否则返回该对象。
+代码
+class Solution {
+public:
+    NestedInteger deserialize(string s) {
+        stack<NestedInteger*> nist;
+        string num;
+        for (auto& ch: s){
+            if (ch == '[') nist.push(new NestedInteger);
+            else if (ch == '-' || isdigit(ch)){
+                if (nist.empty()) return NestedInteger(stoi(s));
+                else num.push_back(ch);
+            }
+            else if (ch == ','){
+                if (!num.empty()){
+                    nist.top()->add(NestedInteger(stoi(num)));
+                    num = "";
+                }
+            }
+            else {
+                if (!num.empty()){
+                    nist.top()->add(NestedInteger(stoi(num)));
+                    num = "";
+                }
+                NestedInteger* t = nist.top();
+                nist.pop();
+                if (!nist.empty()) nist.top()->add(*t);
+                else return *t;
+            }
+        }
+        return NestedInteger();
+    }
+};
+
+方法四
+stringstream+递归
+class Solution {
+public:
+    NestedInteger deserialize(string s) {
+        stringstream ss(s);
+        return help(ss);
+    }
+private:
+    NestedInteger help(stringstream &ss){
+        int n;
+        if(ss >> n) return NestedInteger(n);
+        ss.clear();
+        ss.get(); //'['
+        NestedInteger r;
+        while(ss.peek() != ']'){
+            r.add(help(ss));
+            if(ss.peek() == ',') ss.get(); //','
+        }
+        ss.get(); //']'
+        return r;
+    }
+};
+
+方法五
+非递归
+嵌套列表
+可以认为是python中的列表list的简化版本
+元素有两种类型：
+
+int
+list
+所以形如"[[]]","[0,[],0]"都是有效的；
+解题思路
+讲道理可以用递归吧，但是做了一下发现很混乱，还是用扫描了；
+让我想到的题目就是算带括号的整数计算表达式，如3*(2+1);
+类似地，我们也可以使用一个栈，来记录列表嵌套的深度，每次遇到一个'['则认为进入一层嵌套；']'则是一层嵌套的结束。
+
+至于“324“这种情况，我们直接特殊处理了;
+
+// a single num
+if (s[0] == '-' || (s[0] >= '0' && s[0] <= '9'))
+{
+
+    for (auto ch : s)
+    {
+        if (ch == '-')
+        {
+            sign = -1;
+        }
+        else
+        {
+            value = value * 10 + ch - '0';
+        }
+    }
+    return sign * value;
+}
+普通列表，即一般情况
+字符串只包含数字0-9, [, - ,, ]
+对每个字符的处理方式
+
+数字: 类似 字符串转int的方法 sum = sum * 10 + ch - '0';
+负号: 每次将数字存入NestedInteger时，需要使用
+'[': 一个列表的开始，出现'['，则创建一个NestedInteger，然后压入stack
+']': 当前列表的结束，需要将当前的这个[...]加入到上一层的嵌套中，即top = stack.top(); stack.pop(); stack.top().add(top);
+',': 出现的情况一般是"[1,3]"或者"[[],2]",前面的数字结束了，因为列表的结束我们通过']'已经知晓，所以如果前面是列表，则不做任何操作；而如果是数字，则加入到当前的嵌套;
+完整代码
+
+/**
+ * // This is the interface that allows for creating nested lists.
+ * // You should not implement it, or speculate about its implementation
+ * class NestedInteger {
+ *   public:
+ *     // Constructor initializes an empty nested list.
+ *     NestedInteger();
+ *
+ *     // Constructor initializes a single integer.
+ *     NestedInteger(int value);
+ *
+ *     // Return true if this NestedInteger holds a single integer, rather than a nested list.
+ *     bool isInteger() const;
+ *
+ *     // Return the single integer that this NestedInteger holds, if it holds a single integer
+ *     // The result is undefined if this NestedInteger holds a nested list
+ *     int getInteger() const;
+ *
+ *     // Set this NestedInteger to hold a single integer.
+ *     void setInteger(int value);
+ *
+ *     // Set this NestedInteger to hold a nested list and adds a nested integer to it.
+ *     void add(const NestedInteger &ni);
+ *
+ *     // Return the nested list that this NestedInteger holds, if it holds a nested list
+ *     // The result is undefined if this NestedInteger holds a single integer
+ *     const vector<NestedInteger> &getList() const;
+ * };
+ */
+class Solution {
+public:
+NestedInteger deserialize(string s)
+{
+    stack<NestedInteger> stk;
+    int sign = 1;
+    int value = 0;
+    int isValueValid = false;
+    // a single num
+    if (s[0] == '-' || (s[0] >= '0' && s[0] <= '9'))
+    {
+
+        for (auto ch : s)
+        {
+            if (ch == '-')
+            {
+                sign = -1;
+            }
+            else
+            {
+                value = value * 10 + ch - '0';
+            }
+        }
+        return sign * value;
+    }
+    for (auto ch : s)
+    {
+        if ('[' == ch)
+        {
+            auto ni = NestedInteger();
+            stk.push(ni);
+        }
+        else if (ch == ']')
+        {
+            // 先把数组存入；
+            auto &top = stk.top();
+            if (isValueValid)
+            {
+                top.add(sign * value);
+                isValueValid = false;
+                value = 0;
+                sign = 1;
+            }
+            if (stk.size() == 1)
+            {
+                break;
+            }
+            else
+            {
+                auto topCopy = top;
+                stk.pop();
+                stk.top().add(topCopy);
+            }
+        }
+        // store & reset value
+        else if (ch == ',')
+        {
+            if (isValueValid)
+            {
+                auto &top = stk.top();
+                top.add(sign * value);
+                isValueValid = false;
+                value = 0;
+                sign = 1;
+            }
+        }
+        else if (ch == '-')
+        {
+            sign = -1;
+            isValueValid = true;
+        }
+        else
+        {
+            isValueValid = true;
+            value = value * 10 + ch - '0';
+        }
+    }
+    return stk.top();
+}
+
+};
+
+Java
+***********************************************************
+方法一
+递归
+设定一个getNest()函数用于返回一个列表类型的NestedInteger。
+
+重要的思想是通过类的全局字符数组和一个下标值让每次调用递归函数都知道要处理哪个位置。
+
+class Solution {
+    //递归函数通过字符数组和cur下标确定要处理的位置
+    char[] chars;
+    int cur = 0;
+    public NestedInteger deserialize(String s) {
+        chars = s.toCharArray();
+        //本身不是一个集合而是一个整数的情况
+        if(chars[0]!='[') return new NestedInteger(Integer.valueOf(s));
+        //调用递归函数返回根集合
+        return getNest();
+    }
+    public NestedInteger getNest(){
+        NestedInteger nest = new NestedInteger();
+        int num = 0;//num用于缓存用逗号分割的整数类型的值
+        boolean negative = false;//当前记录的整数是不是负数
+        while(cur!=chars.length-1){
+            cur ++;
+            if(chars[cur]==',') continue;
+            if(chars[cur]=='[') nest.add(getNest());//遇到[递归获取子集合
+            else if(chars[cur]==']') return nest;
+            else if(chars[cur]=='-') negative = true;
+            else{//是数字的情况
+                if(negative) num = 10*num - (chars[cur]-48);
+                else num = 10*num + (chars[cur]-48);
+                //如果下一个字符是,或者]说明当前数字已经记录完了，需要加入集合中
+                if(chars[cur+1]==','||chars[cur+1]==']'){ 
+                    nest.add(new NestedInteger(num));
+                    num = 0;
+                    negative = false;
+                }
+            }
+        }
+        return null;
+    }
+}
+写这篇题解的时候刚开始用Java刷题不久，写的代码不是很优雅，这个代码有几处地方可以修改一下让代码更清晰规范一些：
+
+这段代码中的48代表的就是字符'0'，建议使用'0'替换48。
+negative是布尔型，其实可以优化成整型sign，后面就不需要用if-else进行判断，代码更加精炼。
+优化后的代码如下：
+
+class Solution {
+    //递归函数通过字符数组和cur下标确定要处理的位置
+    char[] chars;
+    int cur = 0;
+    public NestedInteger deserialize(String s) {
+        chars = s.toCharArray();
+        //本身不是一个集合而是一个整数的情况
+        if(chars[0]!='[') return new NestedInteger(Integer.valueOf(s));
+        //调用递归函数返回根集合
+        return getNest();
+    }
+    public NestedInteger getNest(){
+        NestedInteger nest = new NestedInteger();
+        int num = 0;//num用于缓存用逗号分割的整数类型的值
+        int sign = 1;//当前记录的整数的符号，1代表整数，-1代表负数
+        while(cur!=chars.length-1){
+            cur ++;
+            if(chars[cur]==',') continue;
+            if(chars[cur]=='[') nest.add(getNest());//遇到[递归获取子集合
+            else if(chars[cur]==']') return nest;
+            else if(chars[cur]=='-') sign = -1;
+            else{//是数字的情况
+                num = 10*num + sign * (chars[cur]-'0');
+                //如果下一个字符是,或者]说明当前数字已经记录完了，需要加入集合中
+                if(chars[cur+1]==','||chars[cur+1]==']'){ 
+                    nest.add(new NestedInteger(num));
+                    num = 0;
+                    sign = 1;
+                }
+            }
+        }
+        return null;
+    }
+}
+
+方法二
+递归
+/**
+ * // This is the interface that allows for creating nested lists.
+ * // You should not implement it, or speculate about its implementation
+ * public interface NestedInteger {
+ *     // Constructor initializes an empty nested list.
+ *     public NestedInteger();
+ *
+ *     // Constructor initializes a single integer.
+ *     public NestedInteger(int value);
+ *
+ *     // @return true if this NestedInteger holds a single integer, rather than a nested list.
+ *     public boolean isInteger();
+ *
+ *     // @return the single integer that this NestedInteger holds, if it holds a single integer
+ *     // Return null if this NestedInteger holds a nested list
+ *     public Integer getInteger();
+ *
+ *     // Set this NestedInteger to hold a single integer.
+ *     public void setInteger(int value);
+ *
+ *     // Set this NestedInteger to hold a nested list and adds a nested integer to it.
+ *     public void add(NestedInteger ni);
+ *
+ *     // @return the nested list that this NestedInteger holds, if it holds a nested list
+ *     // Return null if this NestedInteger holds a single integer
+ *     public List<NestedInteger> getList();
+ * }
+ */
+class Solution {
+    private char[] chars;
+    private int curIndex;
+
+    public NestedInteger deserialize(String s) {
+        chars = s.toCharArray();
+        if (chars[0]!='[') {
+            return new NestedInteger(Integer.valueOf(s));
+        }
+
+        return dealNest();
+    }
+
+    public NestedInteger dealNest() {
+        NestedInteger nest = new NestedInteger();
+        int num = 0;    // 保存当整数的值
+        int sign = 1;   // 表示“符号”
+        while (curIndex < chars.length - 1) {
+            curIndex++;
+            if (chars[curIndex]=='[') { // 之后的内容为 “嵌套内容”
+                nest.add(dealNest());  // 递归遍历
+            } else if (chars[curIndex] == '-') {
+                sign = -1;
+            } else if (chars[curIndex] == ']') {
+                return nest;
+            } else if (chars[curIndex] == ',') {
+                continue;
+            } else {    // 数字
+                num = 10 * num + sign * (chars[curIndex] - '0');
+                if (chars[curIndex+1]==',' || chars[curIndex+1]==']') {
+                    nest.add(new NestedInteger(num));
+                    num = 0;
+                    sign = 1;
+                }
+            }
+        }
+
+        return null;
+    }
+}
+
+方法三
+索引定义成成员变量
+/**
+ * // This is the interface that allows for creating nested lists.
+ * // You should not implement it, or speculate about its implementation
+ * public interface NestedInteger {
+ *     // Constructor initializes an empty nested list.
+ *     public NestedInteger();
+ *
+ *     // Constructor initializes a single integer.
+ *     public NestedInteger(int value);
+ *
+ *     // @return true if this NestedInteger holds a single integer, rather than a nested list.
+ *     public boolean isInteger();
+ *
+ *     // @return the single integer that this NestedInteger holds, if it holds a single integer
+ *     // Return null if this NestedInteger holds a nested list
+ *     public Integer getInteger();
+ *
+ *     // Set this NestedInteger to hold a single integer.
+ *     public void setInteger(int value);
+ *
+ *     // Set this NestedInteger to hold a nested list and adds a nested integer to it.
+ *     public void add(NestedInteger ni);
+ *
+ *     // @return the nested list that this NestedInteger holds, if it holds a nested list
+ *     // Return null if this NestedInteger holds a single integer
+ *     public List<NestedInteger> getList();
+ * }
+ */
+class Solution {
+    private int k=0; 
+    public NestedInteger deserialize(String s) {
+        if(s.length()==0) return null;
+        char[] chars=s.toCharArray();
+        if(chars[0]!='[') return new NestedInteger(Integer.parseInt(s));
+        return construct(chars);
+    }
+
+    private NestedInteger construct(char[] chars) {
+        NestedInteger ni=new NestedInteger();
+        int sum=0;
+        boolean sign=false;
+        while(k<chars.length)
+        {
+            ++k;
+            if(chars[k]=='-') sign=true;
+            else  if(chars[k]==',') continue;
+            else if(Character.isDigit(chars[k])) {
+                sum=sum*10+(chars[k]-'0');
+                if(chars[k+1]==',' || chars[k+1]==']') {
+                    if(sign) sum=sum*(-1);
+                    ni.add(new NestedInteger(sum));
+                    sum=0;
+                    sign=false;
+                }
+            }
+            else if(chars[k]=='[') ni.add(construct(chars));
+            else if(chars[k]==']') return ni;
+        }
+        return ni;
+    }
+}
+
+Python
+**********************************************************
+方法一
+# """
+# This is the interface that allows for creating nested lists.
+# You should not implement it, or speculate about its implementation
+# """
+#class NestedInteger:
+#    def __init__(self, value=None):
+#        """
+#        If value is not specified, initializes an empty list.
+#        Otherwise initializes a single integer equal to value.
+#        """
+#
+#    def isInteger(self):
+#        """
+#        @return True if this NestedInteger holds a single integer, rather than a nested list.
+#        :rtype bool
+#        """
+#
+#    def add(self, elem):
+#        """
+#        Set this NestedInteger to hold a nested list and adds a nested integer elem to it.
+#        :rtype void
+#        """
+#
+#    def setInteger(self, value):
+#        """
+#        Set this NestedInteger to hold a single integer equal to value.
+#        :rtype void
+#        """
+#
+#    def getInteger(self):
+#        """
+#        @return the single integer that this NestedInteger holds, if it holds a single integer
+#        Return None if this NestedInteger holds a nested list
+#        :rtype int
+#        """
+#
+#    def getList(self):
+#        """
+#        @return the nested list that this NestedInteger holds, if it holds a nested list
+#        Return None if this NestedInteger holds a single integer
+#        :rtype List[NestedInteger]
+#        """
+class Solution:
+    def deserialize(self, s: str) -> NestedInteger:
+        return NestedInteger(eval(s))
+
+
+
+方法二
+解题思路
+看答案是明白了 先要变成 [ [1],[2],[3]]
+但是实际上stack里面的 []并不是 list 也不是stack 它是不支持append的
+所以 自己实际写的时候有些问题
+
+stack[-1].add(val) 这里是不能写append的 因为这个类里面没有append
+
+if c.isdigit():
+num= 10*num + int(c)
+is_num=True
+这里面漏写了 is_num的赋值
+
+val.add( flag*NestedInteger(num)) 这个操作也是不允许的 也就是没有定义 flag NestedInteger
+需要写成 val.add( NestedInteger(flagnum))
+
+# """
+# This is the interface that allows for creating nested lists.
+# You should not implement it, or speculate about its implementation
+# """
+#class NestedInteger:
+#    def __init__(self, value=None):
+#        """
+#        If value is not specified, initializes an empty list.
+#        Otherwise initializes a single integer equal to value.
+#        """
+#
+#    def isInteger(self):
+#        """
+#        @return True if this NestedInteger holds a single integer, rather than a nested list.
+#        :rtype bool
+#        """
+#
+#    def add(self, elem):
+#        """
+#        Set this NestedInteger to hold a nested list and adds a nested integer elem to it.
+#        :rtype void
+#        """
+#
+#    def setInteger(self, value):
+#        """
+#        Set this NestedInteger to hold a single integer equal to value.
+#        :rtype void
+#        """
+#
+#    def getInteger(self):
+#        """
+#        @return the single integer that this NestedInteger holds, if it holds a single integer
+#        Return None if this NestedInteger holds a nested list
+#        :rtype int
+#        """
+#
+#    def getList(self):
+#        """
+#        @return the nested list that this NestedInteger holds, if it holds a nested list
+#        Return None if this NestedInteger holds a single integer
+#        :rtype List[NestedInteger]
+#        """
+class Solution:
+    def deserialize(self, s: str) -> NestedInteger:
+        if s[0] != "[":
+            return NestedInteger(int(s))
+        num, is_num,stack ,flag = 0 ,False, [],1
+        for c in s:
+            if c.isdigit():
+                num= 10*num + int(c)
+                is_num=True
+            elif c=="-":
+                flag=-1
+            elif c=="[":
+                stack.append(NestedInteger())
+            elif c=="," or c=="]":
+                if is_num:
+                    val= stack.pop()
+                    val.add( NestedInteger(flag*num))
+                    stack.append(val)
+                    num=0
+                    flag=1
+                    is_num=False
+
+                if len(stack)>1 and c=="]":
+                    val=stack.pop()
+                    stack[-1].add(val)
+        return stack[0]
+        
+
+
+方法三
+利用栈的反转特性，从里到外嵌套
+解题思路
+从左到右遍历字符串主要有以下几种情况：
+(建议大家结合代码看，如果不是很清楚的话，可以用草稿纸画一画，就清楚过程了)
+
+[ -- 遇到一个左括号，则创建一个NestedInteger()对象，压入栈中
+] -- 这里有三种情况：1)前面是数字；2)前面是右括号；3)前面是左括号
+1) 是数字，则利用数字创建NestedInteger(number)实例，并添加进前栈顶NestedInteger()中；
+2)、3)是右括号或者左括号，则没有数字，直接将当前的NestedInteger()象弹出栈，并将其添加到此时
+栈顶的NestedInteger()中
+, -- 表示前方肯定有左括号，如果逗号前是数字，则用数字创建NestedInteger(number)实例，添加进前栈顶NestedInteger()中
+数字 -- 将字符串转华为整数
+代码
+
+# """
+# This is the interface that allows for creating nested lists.
+# You should not implement it, or speculate about its implementation
+# """
+#class NestedInteger:
+#    def __init__(self, value=None):
+#        """
+#        If value is not specified, initializes an empty list.
+#        Otherwise initializes a single integer equal to value.
+#        """
+#
+#    def isInteger(self):
+#        """
+#        @return True if this NestedInteger holds a single integer, rather than a nested list.
+#        :rtype bool
+#        """
+#
+#    def add(self, elem):
+#        """
+#        Set this NestedInteger to hold a nested list and adds a nested integer elem to it.
+#        :rtype void
+#        """
+#
+#    def setInteger(self, value):
+#        """
+#        Set this NestedInteger to hold a single integer equal to value.
+#        :rtype void
+#        """
+#
+#    def getInteger(self):
+#        """
+#        @return the single integer that this NestedInteger holds, if it holds a single integer
+#        Return None if this NestedInteger holds a nested list
+#        :rtype int
+#        """
+#
+#    def getList(self):
+#        """
+#        @return the nested list that this NestedInteger holds, if it holds a nested list
+#        Return None if this NestedInteger holds a single integer
+#        :rtype List[NestedInteger]
+#        """
+class Solution:
+    def deserialize(self, s: str) -> NestedInteger:
+        
+        '''
+        遍历字符串时从左到右，嵌套结构从里到外，符合栈的反转结构，考虑使用栈解决问题
+
+        每一个整数都是一个NestedInteger对象，从左到右，依次创建对象，存入栈中，然后再
+
+        从栈顶的NestedInteger对象开始，依次添加到前一个NestedIntege对象后形成嵌套
+
+        最后只用返回第一个栈元素对象即可
+        '''
+
+        # 如果第一个字符不是“【”，直接返回
+        if s[0] != "[":
+            return NestedInteger(int(s))
+
+        if s == "[]":
+            return NestedInteger()
+
+        stack = []
+        tmp_num = ""
+        for i,cha in enumerate(s):
+            
+            #每当遇到一个“【”，意味着有一个NestedInteger对象
+            if cha == "[":
+                stack.append(NestedInteger())
+            
+            elif cha == "," :
+                if  s[i-1] != "]":
+                # 前面是数字时才执行
+                    num = int(tmp_num)
+                    stack[-1].add(NestedInteger(num))
+                    tmp_num = ""
+            
+            elif cha == "]":
+                # 前面是数字时才执行
+                if s[i-1] != "]":
+                    if s[i-1] != "[":
+                        num = int(tmp_num)
+                        stack[-1].add(NestedInteger(num))
+    
+                # 如果stack中只剩下一个对象，则嵌套结束，
+                if len(stack)>1:
+                    top = stack.pop()
+                    stack[-1].add(top)
+                tmp_num = ""
+            
+            # 对数字的处理
+            else:
+                tmp_num += cha
+        
+        return stack[0]
+
+
+
+方法四
+非内置函数递归解析嵌套表
+
+解题思路
+递归解析嵌套表字符串
+
+# """
+# This is the interface that allows for creating nested lists.
+# You should not implement it, or speculate about its implementation
+# """
+#class NestedInteger:
+#    def __init__(self, value=None):
+#        """
+#        If value is not specified, initializes an empty list.
+#        Otherwise initializes a single integer equal to value.
+#        """
+#
+#    def isInteger(self):
+#        """
+#        @return True if this NestedInteger holds a single integer, rather than a nested list.
+#        :rtype bool
+#        """
+#
+#    def add(self, elem):
+#        """
+#        Set this NestedInteger to hold a nested list and adds a nested integer elem to it.
+#        :rtype void
+#        """
+#
+#    def setInteger(self, value):
+#        """
+#        Set this NestedInteger to hold a single integer equal to value.
+#        :rtype void
+#        """
+#
+#    def getInteger(self):
+#        """
+#        @return the single integer that this NestedInteger holds, if it holds a single integer
+#        Return None if this NestedInteger holds a nested list
+#        :rtype int
+#        """
+#
+#    def getList(self):
+#        """
+#        @return the nested list that this NestedInteger holds, if it holds a nested list
+#        Return None if this NestedInteger holds a single integer
+#        :rtype List[NestedInteger]
+#        """
+class Solution:
+
+    def deserialize(self, s: str) -> NestedInteger:
+        nums = "-0123456789"
+        return NestedInteger(self._deserialize(nums, s))
+
+    def _deserialize(self, nums, s):
+        cur_w = s[0]
+        if cur_w in nums:
+            return int(s)
+
+        s = s[1:-1]
+        if s == '':
+            return []
+
+        res = []
+        layer = 0
+        i = 0
+        while i < len(s):
+            if s[i] == '[':
+                sub_list = s[i]
+                layer += 1
+                i += 1
+                while i < len(s) and layer != 0:
+                    sub_list += s[i]
+                    if s[i] == '[':
+                        layer += 1
+                    elif s[i] == ']':
+                        layer -= 1
+                    i += 1
+                res.append(self._deserialize(nums, sub_list))
+            elif s[i] in nums:
+                tmp_s = ''
+                while i < len(s) and s[i] in nums:
+                    tmp_s += s[i]
+                    i += 1
+                res.append(int(tmp_s))
+            i += 1
+        return res
+            
+
+
+
+
