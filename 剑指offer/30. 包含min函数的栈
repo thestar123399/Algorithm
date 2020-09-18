@@ -1,0 +1,939 @@
+定义栈的数据结构，请在该类型中实现一个能够得到栈的最小元素的 min 函数在该栈中，调用 min、push 及 pop 的时间复杂度都是 O(1)。
+
+ 
+
+示例:
+
+MinStack minStack = new MinStack();
+minStack.push(-2);
+minStack.push(0);
+minStack.push(-3);
+minStack.min();   --> 返回 -3.
+minStack.pop();
+minStack.top();      --> 返回 0.
+minStack.min();   --> 返回 -2.
+ 
+
+提示：
+
+各函数的调用总次数不超过 20000 次
+
+C++
+class MinStack {
+public:
+    /** initialize your data structure here. */
+    stack<int> st;
+    stack<int> stMin;
+
+    MinStack() {
+
+    }
+    
+    void push(int x) {
+        if(!st.empty()){
+            st.push(x);
+            int num = stMin.top() < x ? stMin.top() : x;
+            stMin.push(num);
+        }
+        else{
+            st.push(x);
+            stMin.push(x);
+        }
+    }
+    
+    void pop() {
+        if(!st.empty()) {
+            st.pop();
+            stMin.pop();
+        }
+    }
+    
+    int top() {
+        if(!st.empty()){
+            return st.top();    
+        }
+        return -1;
+    }
+    
+    int min() {
+        if(!stMin.empty()){
+            return stMin.top();    
+        }
+        return -1;
+    }
+};
+
+/**
+ * Your MinStack object will be instantiated and called as such:
+ * MinStack* obj = new MinStack();
+ * obj->push(x);
+ * obj->pop();
+ * int param_3 = obj->top();
+ * int param_4 = obj->min();
+ */
+ 
+ C++
+ ***********************************************************************
+ 方法一
+ 用另一个栈记录min的变化值
+
+class MinStack {
+public:
+    /** initialize your data structure here. */
+    MinStack() {
+    }
+    stack<int>s;
+    stack<int>Min;
+    void push(int x) {
+        s.push(x);
+        if(Min.empty()||x<=Min.top())Min.push(x);
+    }
+    
+    void pop() {
+        if(!s.empty()){
+            if(s.top()==Min.top())Min.pop();
+            s.pop();
+        }
+    }
+    int top() {
+        return s.top();
+    }
+    int getMin() {
+        return Min.top();
+    }
+};
+
+方法二
+解题思路
+最小栈
+stack中存放pair<int,int> first为val second为min_val
+
+代码
+//面试题30. 包含min函数的栈
+class MinStack {
+public:
+	//最小栈 
+	// stack中存放pair<int,int> first为val second为min_val
+	stack<pair<int, int>> min_stack;
+	int min_val;
+	MinStack() {
+		min_val = INT_MAX;
+	}
+	void push(int x) {
+		//维护最小值min_val定义 插入stack
+		if (x <= min_val) {
+			min_val = x;
+		}
+		min_stack.push({ x,min_val });
+	}
+
+	void pop() {
+		//非空删除 
+		//维护 min_val定义
+		//删除后为空 min_val为初始化 INT_MAX
+		//删除后非空 min_val为栈顶second
+
+		if (!min_stack.empty()) {
+			min_stack.pop();
+		}
+		if (min_stack.empty()) {
+			min_val = INT_MAX;
+		}
+		else {
+			min_val = min_stack.top().second;
+		}
+
+	}
+
+	int top() {
+		//栈顶first为val
+		return min_stack.top().first;
+	}
+
+	int min() {
+		//栈顶second为min_val
+		return min_stack.top().second;
+	}
+};
+
+
+方法三 数组
+需要初始化两个长度为20000的数组，一个存放数据，一个存放最小值
+
+代码
+class MinStack {
+public:
+    int num[20000];
+    int m[20000];
+    int i = 0;
+    int Min = 0x7FFFFFFF;
+    /** initialize your data structure here. */
+    MinStack() {
+        
+    }
+    
+    void push(int x) {
+        if (i == 0)
+        {
+            m[i] = x;
+            Min = x;
+        }
+        else
+        {
+        if (x < m[i - 1])
+            Min = x;
+        m[i] = Min;
+        }
+        num[i] = x;
+        i++;
+    }
+    
+    void pop() {
+        i--;
+        if (i != 0 && m[i] == Min)
+            Min = m[i - 1];
+    }
+    
+    int top() {
+        return num[i - 1];
+    }
+    
+    int min() {
+        return m[i - 1];
+    }
+};
+
+/**
+ * Your MinStack object will be instantiated and called as such:
+ * MinStack* obj = new MinStack();
+ * obj->push(x);
+ * obj->pop();
+ * int param_3 = obj->top();
+ * int param_4 = obj->min();
+ */
+
+
+Java
+************************************************************************
+方法一
+解题思路：
+普通栈的 push() 和 pop() 函数的复杂度为 O(1)；而获取栈最小值 min() 函数需要遍历整个栈，复杂度为 O(N) 。
+
+本题难点： 将 min() 函数复杂度降为 O(1)O(1) ，可通过建立辅助栈实现；
+数据栈 AA ： 栈 AA 用于存储所有元素，保证入栈 push() 函数、出栈 pop() 函数、获取栈顶 top() 函数的正常逻辑。
+辅助栈 BB ： 栈 BB 中存储栈 AA 中所有 非严格降序 的元素，则栈 AA 中的最小元素始终对应栈 BB 的栈顶元素，即 min() 函数只需返回栈 BB 的栈顶元素即可。
+因此，只需设法维护好 栈 BB 的元素，使其保持非严格降序，即可实现 min() 函数的 O(1)O(1) 复杂度。
+
+
+函数设计：
+push(x) 函数： 重点为保持栈 BB 的元素是 非严格降序 的。
+
+将 xx 压入栈 AA （即 A.add(x) ）；
+若 ① 栈 BB 为空 或 ② xx 小于等于 栈 BB 的栈顶元素，则将 xx 压入栈 BB （即 B.add(x) ）。
+pop() 函数： 重点为保持栈 A, BA,B 的 元素一致性 。
+
+执行栈 AA 出栈（即 A.pop() ），将出栈元素记为 yy ；
+若 yy 等于栈 BB 的栈顶元素，则执行栈 B 出栈（即 B.pop() ）。
+top() 函数： 直接返回栈 AA 的栈顶元素即可，即返回 A.peek() 。
+
+min() 函数： 直接返回栈 BB 的栈顶元素即可，即返回 B.peek() 。
+
+
+1 / 9
+
+复杂度分析：
+时间复杂度 O(1) ： push(), pop(), top(), min() 四个函数的时间复杂度均为常数级别。
+空间复杂度 O(N) ： 当共有 N 个待入栈元素时，辅助栈 BB 最差情况下存储 N 个元素，使用 O(N) 额外空间。
+代码：
+Java 代码中，由于 Stack 中存储的是 int 的包装类 Integer ，因此需要使用 equals() 代替 == 来比较值是否相等。
+class MinStack {
+    Stack<Integer> A, B;
+    public MinStack() {
+        A = new Stack<>();
+        B = new Stack<>();
+    }
+    public void push(int x) {
+        A.add(x);
+        if(B.empty() || B.peek() >= x)
+            B.add(x);
+    }
+    public void pop() {
+        if(A.pop().equals(B.peek()))
+            B.pop();
+    }
+    public int top() {
+        return A.peek();
+    }
+    public int min() {
+        return B.peek();
+    }
+}
+
+方法二
+1，使用辅助类解决
+这道题让我们自定义一个栈，有push，pop，top，min四个函数。这题和官方的Stack相比就多了一个min函数。栈的实现我们可以使用链表，先来定义一个链表类
+
+
+class ListNode {
+    public int val;
+    public int min;//最小值
+    public ListNode next;
+
+    public ListNode(int val, int min, ListNode next) {
+        this.val = val;
+        this.min = min;
+        this.next = next;
+    }
+}
+这里对链表的操作永远都是链表的头，假如往栈中加入3→2→5→4，画个图来看一下使用链表怎么操作的
+链接：https://leetcode-cn.com/problems/bao-han-minhan-shu-de-zhan-lcof/solution/jian-zhi-offer-30-bao-han-minhan-shu-de-zhan-tu-we/
+class MinStack {
+    //链表头，相当于栈顶
+    private ListNode head;
+
+    //压栈，需要判断栈是否为空
+    public void push(int x) {
+        if (empty())
+            head = new ListNode(x, x, null);
+        else
+            head = new ListNode(x, Math.min(x, head.min), head);
+    }
+
+    //出栈，相当于把链表头删除
+    public void pop() {
+        if (empty())
+            throw new IllegalStateException("栈为空……");
+        head = head.next;
+    }
+
+    //栈顶的值也就是链表头的值
+    public int top() {
+        if (empty())
+            throw new IllegalStateException("栈为空……");
+        return head.val;
+    }
+
+    //链表中头结点保存的是整个链表最小的值，所以返回head.min也就是
+    //相当于返回栈中最小的值
+    public int min() {
+        if (empty())
+            throw new IllegalStateException("栈为空……");
+        return head.min;
+    }
+
+    //判断栈是否为空
+    private boolean empty() {
+        return head == null;
+    }
+}
+
+class ListNode {
+    public int val;
+    public int min;//最小值
+    public ListNode next;
+
+    public ListNode(int val, int min, ListNode next) {
+        this.val = val;
+        this.min = min;
+        this.next = next;
+    }
+}
+
+上面解决方式是使用一个辅助的类，实际上如果使用辅助类，我们也可以使用官方提供的栈，像下面这样。
+class MinStack {
+    private Stack<StackNode> stack = new Stack<>();
+
+    //压栈
+    public void push(int x) {
+        if (empty()) {
+            stack.push(new StackNode(x, x));
+        } else {
+            stack.push(new StackNode(x, Math.min(x, min())));
+        }
+    }
+
+    //出栈
+    public void pop() {
+        if (empty())
+            throw new IllegalStateException("栈为空……");
+        stack.pop();
+    }
+
+    public int top() {
+        if (empty())
+            throw new IllegalStateException("栈为空……");
+        return stack.peek().val;
+    }
+
+    public int min() {
+        if (empty())
+            throw new IllegalStateException("栈为空……");
+        return stack.peek().min;
+    }
+
+    //判断栈是否为空
+    private boolean empty() {
+        return stack.isEmpty();
+    }
+}
+
+class StackNode {
+    public int val;
+    public int min;
+
+    public StackNode(int val, int min) {
+        this.val = val;
+        this.min = min;
+    }
+}
+
+方法2
+*****
+2，使用单个栈解决
+也可以使用官方提供的栈，当压栈的值小于栈中最小值时，先把最小值入栈，然后再把需要压栈的值入栈，最后再更新栈中最小值。如果压栈的值大于栈中最小值的时候，直接压栈，这里就以[6，2，1，4]分别入栈来看一下
+这是压栈的过程，出栈的时候如果出栈的值等于最小值，说明最小值已经出栈了，要更新最小值，估计直接看代码会更明白一些
+class MinStack {//push方法可能会加入很多min
+    int min = Integer.MAX_VALUE;
+    Stack<Integer> stack = new Stack<>();
+
+    public void push(int x) {
+        //如果加入的值小于最小值，要更新最小值
+        if (x <= min) {
+            stack.push(min);
+            min = x;
+        }
+        stack.push(x);
+    }
+
+    public void pop() {
+        //如果把最小值出栈了，就更新最小值
+        if (stack.pop() == min)
+            min = stack.pop();
+    }
+
+    public int top() {
+        return stack.peek();
+    }
+
+    public int min() {
+        return min;
+    }
+}
+
+这种方式虽然也能解决，但如果压栈的值一直递减的话，栈中会压入很多的min，实际上我们还可以在改一下，栈中压入的是需要压栈的值和最小值的差值，这样就不会压入min了，看下代码
+public class MinStack {
+    long min;
+    Stack<Long> stack = new Stack<>();
+
+    public void push(int x) {
+        if (stack.isEmpty()) {
+            stack.push(0L);
+            min = x;
+        } else {
+            //这里入栈的是入栈的值和最小值的差值，有可能为负，也有可能为正。
+            stack.push(x - min);
+            if (x < min)
+                min = x;
+        }
+    }
+
+    public void pop() {
+        if (stack.isEmpty())
+            return;
+        long pop = stack.pop();
+        //因为入栈的是差值，当出栈的为负数的时候，说明栈中最小值已经出栈了，
+        //这里要重新更新最小值
+        if (pop < 0)
+            min -= pop;
+    }
+
+    public int top() {
+        long top = stack.peek();
+        if (top > 0) {
+            //栈顶元素如果是正的，说明栈顶元素压栈的时候是比栈中最小值大的，根据
+            //top=x - min，可以计算x=top+min
+            return (int) (top + min);
+        } else {
+            //当栈顶元素是负数的时候，说明栈顶元素压栈的时候是比栈中最小值小的，
+            //而压栈完之后他会更新最小值min，所以如果在使用上面公式肯定是不行
+            //的。如果栈顶元素压栈的时候比最小值小，他会更新最小值，这个最小值
+            //就是我们要压栈的值，所以这里直接返回min就行了。
+            return (int) (min);
+        }
+    }
+
+    public int min() {
+        return (int) min;
+    }
+}
+
+方法三
+*******
+3，使用双栈解决
+这个代码比较简洁，就不在说了，直接看下代码
+class MinStack {
+    //栈1存放的是需要压栈的值
+    Stack<Integer> stack1 = new Stack<>();
+    //栈2存放的是最小值
+    Stack<Integer> stack2 = new Stack<>();
+
+    public void push(int x) {
+        stack1.push(x);
+        if (stack2.empty() || x <= min())
+            stack2.push(x);
+    }
+
+    public void pop() {
+        //如果出栈的值等于最小值，说明栈中的最小值
+        //已经出栈了，因为stack2中的栈顶元素存放的
+        //就是最小值，所以stack2栈顶元素也要出栈
+        if (stack1.pop() == min())
+            stack2.pop();
+    }
+
+    public int top() {
+        return stack1.peek();
+    }
+
+    public int min() {
+        return stack2.peek();
+    }
+}
+
+方法四
+Description
+义栈的数据结构，请在该类型中实现一个能够得到栈的最小元素的 min 函数在该栈中，调用 min、push 及 pop 的时间复杂度都是 O(1)。
+Answer 1: Double-Stack
+维护一个辅助栈来动态记录最小值.
+WHEN PUSH：若新的值大于最小栈栈顶的值，则忽略；否则 push
+WHEN POP：若原始栈顶的值与最小栈顶的值相等，则都 pop；否则，仅原始栈 pop
+WHEN TOP：都 pop
+
+class MinStack {
+    Stack<Integer> A, B;
+    
+    public MinStack() {
+        A = new Stack<>();
+        B = new Stack<>();
+    }
+    
+    public void push(int x) {
+        A.add(x);
+        if(B.empty() || x <= B.peek()) B.add(x);
+    }
+    
+    public void pop() {
+        if(A.peek().equals(B.peek())) B.pop();
+        A.pop();
+    }
+    
+    public int top() {
+        return A.peek();
+    }
+    
+    public int min() {
+        return B.peek();
+    }
+}
+
+Answer 2: Stack Plus
+设计一个增强型栈，其中不仅存储了原始的数据，还同时存储了最小值信息
+难点：push 和 pop 都需要改进，使得记录最小值的同时不干扰基本的功能
+解决方案
+WHEN PUSH：保存最小值信息。每次 push 都将当前值与 minVal 比较，若不大于，则首先将 minVal 入栈，然后 push；否则，直接 push.
+需要取不大于，而不是小于，是由第 2 点决定的
+WHEN POP：回溯最小值信息。每次 pop 都将返回值与 minVal 比较，若等于则再次 pop，这时的值为最小值的回溯值（回溯值可能与 minVal 相等），将 minVal 更新为该值.
+
+class MinStack {
+    private Stack<Integer> stack;
+    private int minVal;
+
+    public MinStack() {
+        stack = new Stack<>();
+        min = Integer.MAX_VALUE;
+    }
+    
+    public void push(int x) {
+        if(x <= min){
+            stack.push(min);
+            min = x;
+        }
+        stack.push(x);
+    }
+    
+    public void pop() {
+        if(stack.pop() == min){
+            min = stack.pop();
+        }
+    }
+    
+    public int top() {
+        return stack.peek();
+    }
+    
+    public int min() {
+        return min;
+    }
+}
+
+方法五
+手写实现个链表
+在Node里添加个属性min，既简单又直观，代码如下：
+    private Node head; 
+
+    public MinStack() {
+
+    }
+
+    public void push(int x) {
+
+        if (head == null)
+            head = new Node(x, x, null);
+        else
+            head = new Node(x, Math.min(head.min, x), head);
+    }
+
+    public void pop() {
+
+        head = head.next;
+    }
+
+    public int top() {
+
+        return head.val;
+    }
+
+    public int min() {
+
+        return head.min;
+    }
+
+    private class Node {
+
+        int val;
+        int min;
+        Node next;
+
+        public Node(int val, int min, Node next) {
+
+            this.val = val;
+            this.min = min;
+            this.next = next;
+        }
+    }
+
+
+
+Python
+***************************************************************
+方法一
+class MinStack:
+    def __init__(self):
+        self.A, self.B = [], []
+
+    def push(self, x: int) -> None:
+        self.A.append(x)
+        if not self.B or self.B[-1] >= x:
+            self.B.append(x)
+
+    def pop(self) -> None:
+        if self.A.pop() == self.B[-1]:
+            self.B.pop()
+
+    def top(self) -> int:
+        return self.A[-1]
+
+    def min(self) -> int:
+        return self.B[-1]
+
+方法二
+class MinStack:
+
+    def __init__(self):
+        self.stack = []
+
+    def push(self, x: int) -> None:
+        if not self.stack:
+            self.stack.append((x,x))
+        else:
+            min_num = self.min()
+            if x <= self.min():
+                self.stack.append((x,x))
+            else:
+                self.stack.append((x,min_num))
+
+    def pop(self) -> None:
+        self.stack.pop(-1)
+
+    def top(self) -> int:
+        return self.stack[-1][0]
+
+    def min(self) -> int:
+        return self.stack[-1][1]
+
+
+
+# Your MinStack object will be instantiated and called as such:
+# obj = MinStack()
+# obj.push(x)
+# obj.pop()
+# param_3 = obj.top()
+# param_4 = obj.min()
+
+方法三
+差值法
+思路
+符合直觉的方法是，每次对栈进行修改操作（push和pop）的时候更新最小值。 然后getMin只需要返回我们计算的最小值即可，
+top也是直接返回栈顶元素即可。 这种做法每次修改栈都需要更新最小值，因此时间复杂度是O(n).
+
+
+
+是否有更高效的算法呢？答案是有的。
+
+我们每次入栈的时候，保存的不再是真正的数字，而是它与当前最小值的差（当前元素没有入栈的时候的最小值）。
+这样我们pop和top的时候拿到栈顶元素再加上上一个最小值即可。
+另外我们在push和pop的时候去更新min，这样getMin的时候就简单了，直接返回min。
+
+注意上面加粗的“上一个”，不是“当前的最小值”
+
+经过上面的分析，问题的关键转化为“如何求得上一个最小值”，解决这个的关键点在于利用min。
+
+pop或者top的时候：
+
+如果栈顶元素小于0，说明栈顶是当前最小的元素，它出栈会对min造成影响，我们需要去更新min。
+上一个最小的是“min - 栈顶元素”,我们需要将上一个最小值更新为当前的最小值
+因为栈顶元素入栈的时候的通过 栈顶元素 = 真实值 - 上一个最小的元素 得到的，
+而真实值 = min， 因此可以得出上一个最小的元素 = 真实值 -栈顶元素
+
+如果栈顶元素大于0，说明它对最小值没有影响，上一个最小值就是上上个最小值。
+
+
+
+关键点
+最小栈存储的不应该是真实值，而是真实值和min的差值
+top的时候涉及到对数据的还原，这里千万注意是上一个最小值
+代码
+语言支持：JS，Python
+Javascript Code:
+链接：https://leetcode-cn.com/problems/bao-han-minhan-shu-de-zhan-lcof/solution/tu-jie-chai-zhi-fa-python3javascript-by-azl3979858/
+
+/*
+ * @lc app=leetcode id=155 lang=javascript
+ *
+ * [155] Min Stack
+ */
+/**
+ * initialize your data structure here.
+ */
+var MinStack = function() {
+  this.stack = [];
+  this.minV = Number.MAX_VALUE;
+};
+
+/**
+ * @param {number} x
+ * @return {void}
+ */
+MinStack.prototype.push = function(x) {
+  // update 'min'
+  const minV = this.minV;
+  if (x < this.minV) {
+    this.minV = x;
+  }
+  return this.stack.push(x - minV);
+};
+
+/**
+ * @return {void}
+ */
+MinStack.prototype.pop = function() {
+  const item = this.stack.pop();
+  const minV = this.minV;
+
+  if (item < 0) {
+    this.minV = minV - item;
+    return minV;
+  }
+  return item + minV;
+};
+
+/**
+ * @return {number}
+ */
+MinStack.prototype.top = function() {
+  const item = this.stack[this.stack.length - 1];
+  const minV = this.minV;
+
+  if (item < 0) {
+    return minV;
+  }
+  return item + minV;
+};
+
+/**
+ * @return {number}
+ */
+MinStack.prototype.min = function() {
+  return this.minV;
+};
+
+/**
+ * Your MinStack object will be instantiated and called as such:
+ * var obj = new MinStack()
+ * obj.push(x)
+ * obj.pop()
+ * var param_3 = obj.top()
+ * var param_4 = obj.min()
+ */
+
+Python Code:
+class MinStack:
+
+    def __init__(self):
+        """
+        initialize your data structure here.
+        """
+        self.minV = float('inf')
+        self.stack = []
+
+    def push(self, x: int) -> None:
+        self.stack.append(x - self.minV)
+        if x < self.minV:
+            self.minV = x
+
+    def pop(self) -> None:
+        if not self.stack:
+            return
+        tmp = self.stack.pop()
+        if tmp < 0:
+            self.minV -= tmp
+
+    def top(self) -> int:
+        if not self.stack:
+            return
+        tmp = self.stack[-1]
+        if tmp < 0:
+            return self.minV
+        else:
+            return self.minV + tmp
+
+    def min(self) -> int:
+        return self.minV
+
+
+
+# Your MinStack object will be instantiated and called as such:
+# obj = MinStack()
+# obj.push(x)
+# obj.pop()
+# param_3 = obj.top()
+# param_4 = obj.min()
+
+复杂度分析
+
+时间复杂度：O(1)
+空间复杂度：O(1)
+
+方法四
+
+两个栈
+思路
+我们使用两个栈：
+
+一个栈存放全部的元素，push，pop都是正常操作这个正常栈。
+另一个存放最小栈。 每次push，如果比最小栈的栈顶还小，我们就push进最小栈，否则不操作
+每次pop的时候，我们都判断其是否和最小栈栈顶元素相同，如果相同，那么我们pop掉最小栈的栈顶元素即可
+关键点
+往minstack中 push的判断条件。 应该是stack为空或者x小于等于minstack栈顶元素
+代码
+JavaScript：
+/**
+ * initialize your data structure here.
+ */
+var MinStack = function() {
+    this.stack = []
+    this.minStack = []
+};
+
+/** 
+ * @param {number} x
+ * @return {void}
+ */
+MinStack.prototype.push = function(x) {
+    this.stack.push(x)
+    if (this.minStack.length == 0 ||  x <= this.minStack[this.minStack.length - 1]) {
+        this.minStack.push(x)
+    }
+};
+
+/**
+ * @return {void}
+ */
+MinStack.prototype.pop = function() {
+    const x = this.stack.pop()
+    if (x !== void 0 &&  x === this.minStack[this.minStack.length - 1]) {
+        this.minStack.pop()
+    }
+};
+
+/**
+ * @return {number}
+ */
+MinStack.prototype.top = function() {
+    return this.stack[this.stack.length - 1]
+};
+
+/**
+ * @return {number}
+ */
+MinStack.prototype.min = function() {
+    return this.minStack[this.minStack.length - 1]
+};
+
+/** 
+ * Your MinStack object will be instantiated and called as such:
+ * var obj = new MinStack()
+ * obj.push(x)
+ * obj.pop()
+ * var param_3 = obj.top()
+ * var param_4 = obj.min()
+ */
+
+Python3:
+class MinStack:
+
+    def __init__(self):
+        """
+        initialize your data structure here.
+        """
+        self.stack = []
+        self.minstack = []
+
+    def push(self, x: int) -> None:
+        self.stack.append(x)
+        if not self.minstack or x <= self.minstack[-1]:
+            self.minstack.append(x)
+
+    def pop(self) -> None:
+        tmp = self.stack.pop()
+        if tmp == self.minstack[-1]:
+            self.minstack.pop()
+
+    def top(self) -> int:
+        return self.stack[-1]
+
+    def min(self) -> int:
+        return self.minstack[-1]
+
+
+# Your MinStack object will be instantiated and called as such:
+# obj = MinStack()
+# obj.push(x)
+# obj.pop()
+# param_3 = obj.top()
+# param_4 = obj.min()
+
+复杂度分析
+
+时间复杂度：O(1)
+空间复杂度：O(N)
