@@ -1,0 +1,436 @@
+用两个栈实现一个队列。队列的声明如下，请实现它的两个函数 appendTail 和 deleteHead ，分别完成在队列尾部插入整数和在队列头部删除整数的功能。(若队列中没有元素，deleteHead 操作返回 -1 )
+
+ 
+
+示例 1：
+
+输入：
+["CQueue","appendTail","deleteHead","deleteHead"]
+[[],[3],[],[]]
+输出：[null,null,3,-1]
+示例 2：
+
+输入：
+["CQueue","deleteHead","appendTail","appendTail","deleteHead","deleteHead"]
+[[],[],[5],[2],[],[]]
+输出：[null,-1,null,null,5,2]
+提示：
+
+1 <= values <= 10000
+最多会对 appendTail、deleteHead 进行 10000 次调用
+
+C++
+class CQueue {
+public:
+    stack<int> stin;
+    stack<int> stout;
+    CQueue() {
+
+    }
+    
+    void appendTail(int value) {
+        stin.push(value);
+    }
+    
+    int deleteHead() {
+        int num = -1;
+        if(!stout.empty()){
+            num = stout.top();
+            stout.pop();
+        }
+        else{
+            while(!stin.empty()){
+                stout.push(stin.top());
+                stin.pop();
+            }
+
+            if(!stout.empty()){
+                num = stout.top();
+                stout.pop();    
+            }
+            
+        }
+
+        return num;
+    }
+};
+
+/**
+ * Your CQueue object will be instantiated and called as such:
+ * CQueue* obj = new CQueue();
+ * obj->appendTail(value);
+ * int param_2 = obj->deleteHead();
+ */
+ 
+ C++
+ **************************************************************
+方法一
+方法一：双栈
+思路和算法
+
+维护两个栈，第一个栈支持插入操作，第二个栈支持删除操作。
+
+根据栈先进后出的特性，我们每次往第一个栈里插入元素后，第一个栈的底部元素是最后插入的元素，第一个栈的顶部元素是下一个待删除的元素。为了维护队列先进先出的特性，我们引入第二个栈，用第二个栈维护待删除的元素，在执行删除操作的时候我们首先看下第二个栈是否为空。如果为空，我们将第一个栈里的元素一个个弹出插入到第二个栈里，这样第二个栈里元素的顺序就是待删除的元素的顺序，要执行删除操作的时候我们直接弹出第二个栈的元素返回即可。
+
+成员变量
+
+维护两个栈 stack1 和 stack2，其中 stack1 支持插入操作，stack2 支持删除操作
+构造方法
+
+初始化 stack1 和 stack2 为空
+插入元素
+
+插入元素对应方法 appendTail
+
+stack1 直接插入元素
+删除元素
+
+删除元素对应方法 deleteHead
+
+如果 stack2 为空，则将 stack1 里的所有元素弹出插入到 stack2 里
+如果 stack2 仍为空，则返回 -1，否则从 stack2 弹出一个元素并返回
+
+class CQueue {
+    stack<int> stack1,stack2;
+public:
+    CQueue() {
+        while (!stack1.empty()) {
+            stack1.pop();
+        }
+        while (!stack2.empty()) {
+            stack2.pop();
+        }
+    }
+    
+    void appendTail(int value) {
+        stack1.push(value);
+    }
+    
+    int deleteHead() {
+        // 如果第二个栈为空
+        if (stack2.empty()) {
+            while (!stack1.empty()) {
+                stack2.push(stack1.top());
+                stack1.pop();
+            }
+        } 
+        if (stack2.empty()) {
+            return -1;
+        } else {
+            int deleteItem = stack2.top();
+            stack2.pop();
+            return deleteItem;
+        }
+    }
+};
+
+复杂度分析
+
+时间复杂度：对于插入和删除操作，时间复杂度均为 O(1)。插入不多说，对于删除操作，虽然看起来是 O(n) 的时间复杂度，但是仔细考虑下每个元素只会「至多被插入和弹出 stack2 一次」，因此均摊下来每个元素被删除的时间复杂度仍为 O(1)。
+
+空间复杂度：O(n)。需要使用两个栈存储已有的元素。
+
+方法二 辅助栈
+解题思路：
+只使用一个栈 stack1 当作队列，另一个栈 stack2 用来辅助操作。
+
+要想将新加入的元素出现栈底，需要先将 stack1 的元素转移到 stack2，将元素入栈 stack1，最后将 stack2 的元素全部回到 stack1。
+
+class CQueue {
+public:
+    stack<int> stack1;
+    stack<int> stack2;
+    CQueue() {}
+    
+    void appendTail(int value) {
+        stack1.push(value);
+    }
+    
+    int deleteHead() {
+        if (stack1.empty()) return -1;
+        
+        while (!stack1.empty()){ // 1 -> 2
+            int tmp = stack1.top();
+            stack1.pop();
+            stack2.push(tmp);
+        }
+        // delete head
+        int res = stack2.top();
+        stack2.pop();
+        while (!stack2.empty()){ // 1 <- 2
+            int temp = stack2.top();
+            stack2.pop();
+            stack1.push(temp);
+        }
+        return res;
+    }
+};
+
+
+复杂度分析
+1. 插入
+
+时间复杂度：O(n)。
+空间复杂度：O(n)，使用了辅助栈的空间。
+2. 删除
+
+时间复杂度：O(n)。
+空间复杂度：O(n)，stack1 当作了队列，直接在原队列上删除，没使用额外空间。
+
+方法三
+
+
+栈是先进后出，队列是先进先出。进行入队操作时，把元素压入第一个栈（one）中。进行出队操作时，先判断第二个栈（two）是不是空：
+如果two是空，再判断one是否为空，如果one和two都为空，则队列中没有元素，返回-1。如果two为空而one不为空，则将one中元素依次出栈并压入two中，完成后返回two的栈顶元素值，并对two进行一次pop操作（删除队头）。
+如果two非空那直接返回two栈顶元素值，并进行一步pop操作。
+代码
+class CQueue {
+public:
+    CQueue() {
+
+    }
+    
+    void appendTail(int value) {
+        one.push(value);  //one中压入数据
+    }
+    
+    int deleteHead() {
+        if(two.empty())  //two中为空
+        {
+            if(one.empty())  //one中也为空，那就是没有数据
+                return -1;
+            //将one中数据依次出栈并压入two中
+            while(!one.empty())  //one,不空
+            {
+                two.push(one.top());  //one栈顶元素压入two中
+                one.pop();  //one栈顶元素出栈
+            }
+            int top = two.top();  //获取two的栈顶
+            two.pop();  //出栈
+            return top;  //返回结果
+        }
+        else
+        {
+            int top = two.top();  //获取two的栈顶
+            two.pop();  //出栈
+            return top;  //返回结果
+        }
+    }
+private:
+    stack<int> one, two;  //两个栈
+};
+
+/**
+ * Your CQueue object will be instantiated and called as such:
+ * CQueue* obj = new CQueue();
+ * obj->appendTail(value);
+ * int param_2 = obj->deleteHead();
+ */
+
+或者
+
+class CQueue {
+private:
+    stack<int> stack1, stack2;
+public:
+    CQueue() {}
+    
+    void appendTail(int value) {
+        stack1.push(value);
+    }
+    
+    int deleteHead() {
+        // 明确一点，题目要求queue弹出的元素，是stack1最下面的元素，也是stack2最上面的元素
+        int res = 0;
+        if(!stack2.empty())
+        {
+            // 如果stack2不是空的，那么其最上面的元素就是要被弹出的
+            res = stack2.top();
+            stack2.pop();
+        }
+        else if(!stack1.empty())
+        {
+            // 如果stack2已经空了，把stack1的元素压过去，然后弹出stack2最上面的元素
+            while(!stack1.empty())
+            {
+                stack2.push(stack1.top());
+                stack1.pop();
+            } 
+            res = stack2.top();
+            stack2.pop();
+        }
+        else return -1; // 如果stack1和2都是空的，返回-1
+        return res;
+    }
+};
+
+/**
+ * Your CQueue object will be instantiated and called as such:
+ * CQueue* obj = new CQueue();
+ * obj->appendTail(value);
+ * int param_2 = obj->deleteHead();
+ */
+
+
+Java
+****************************************************************
+方法一 双栈
+class CQueue {
+    Deque<Integer> stack1;
+    Deque<Integer> stack2;
+    
+    public CQueue() {
+        stack1 = new LinkedList<Integer>();
+        stack2 = new LinkedList<Integer>();
+    }
+    
+    public void appendTail(int value) {
+        stack1.push(value);
+    }
+    
+    public int deleteHead() {
+        // 如果第二个栈为空
+        if (stack2.isEmpty()) {
+            while (!stack1.isEmpty()) {
+                stack2.push(stack1.pop());
+            }
+        } 
+        if (stack2.isEmpty()) {
+            return -1;
+        } else {
+            int deleteItem = stack2.pop();
+            return deleteItem;
+        }
+    }
+}
+
+方法二
+
+解题思路：
+栈无法实现队列功能： 栈底元素（对应队首元素）无法直接删除，需要将上方所有元素出栈。
+双栈可实现列表倒序： 设有含三个元素的栈 A = [1,2,3]A=[1,2,3] 和空栈 B = []B=[]。若循环执行 AA 元素出栈并添加入栈 BB ，直到栈 AA 为空，则 A = []A=[] , B = [3,2,1]B=[3,2,1] ，即 栈 BB 元素实现栈 AA 元素倒序 。
+利用栈 BB 删除队首元素： 倒序后，BB 执行出栈则相当于删除了 AA 的栈底元素，即对应队首元素。
+
+
+函数设计：
+题目只要求实现 加入队尾appendTail() 和 删除队首deleteHead() 两个函数的正常工作，因此我们可以设计栈 A 用于加入队尾操作，栈 B 用于将元素倒序，从而实现删除队首元素。
+
+加入队尾 appendTail()函数： 将数字 val 加入栈 A 即可。
+删除队首deleteHead()函数： 有以下三种情况。
+当栈 B 不为空： B中仍有已完成倒序的元素，因此直接返回 B 的栈顶元素。
+否则，当 A 为空： 即两个栈都为空，无元素，因此返回 -1−1 。
+否则： 将栈 A 元素全部转移至栈 B 中，实现元素倒序，并返回栈 B 的栈顶元素。
+
+1 / 8
+
+复杂度分析：
+由于问题特殊，以下分析仅满足添加 N 个元素并删除 N 个元素，即栈初始和结束状态下都为空的情况。
+
+时间复杂度： appendTail()函数为 O(1) ；deleteHead() 函数在 NN 次队首元素删除操作中总共需完成 N 个元素的倒序。
+空间复杂度 O(N) ： 最差情况下，栈 A 和 B 共保存 N 个元素。
+代码：
+class CQueue {
+    LinkedList<Integer> A, B;
+    public CQueue() {
+        A = new LinkedList<Integer>();
+        B = new LinkedList<Integer>();
+    }
+    public void appendTail(int value) {
+        A.addLast(value);
+    }
+    public int deleteHead() {
+        if(!B.isEmpty()) return B.removeLast();
+        if(A.isEmpty()) return -1;
+        while(!A.isEmpty())
+            B.addLast(A.removeLast());
+        return B.removeLast();
+    }
+}
+
+ Python
+ ******************************************************
+ 方法一
+ 解题思路：
+栈无法实现队列功能： 栈底元素（对应队首元素）无法直接删除，需要将上方所有元素出栈。
+双栈可实现列表倒序： 设有含三个元素的栈 A = [1,2,3]A=[1,2,3] 和空栈 B = []B=[]。若循环执行 AA 元素出栈并添加入栈 BB ，直到栈 AA 为空，则 A = []A=[] , B = [3,2,1]B=[3,2,1] ，即 栈 BB 元素实现栈 AA 元素倒序 。
+利用栈 BB 删除队首元素： 倒序后，BB 执行出栈则相当于删除了 AA 的栈底元素，即对应队首元素。
+
+
+函数设计：
+题目只要求实现 加入队尾appendTail() 和 删除队首deleteHead() 两个函数的正常工作，因此我们可以设计栈 A 用于加入队尾操作，栈 B 用于将元素倒序，从而实现删除队首元素。
+
+加入队尾 appendTail()函数： 将数字 val 加入栈 A 即可。
+删除队首deleteHead()函数： 有以下三种情况。
+当栈 B 不为空： B中仍有已完成倒序的元素，因此直接返回 B 的栈顶元素。
+否则，当 A 为空： 即两个栈都为空，无元素，因此返回 -1−1 。
+否则： 将栈 A 元素全部转移至栈 B 中，实现元素倒序，并返回栈 B 的栈顶元素。
+
+1 / 8
+
+复杂度分析：
+由于问题特殊，以下分析仅满足添加 N 个元素并删除 N 个元素，即栈初始和结束状态下都为空的情况。
+
+时间复杂度： appendTail()函数为 O(1) ；deleteHead() 函数在 NN 次队首元素删除操作中总共需完成 N 个元素的倒序。
+空间复杂度 O(N) ： 最差情况下，栈 A 和 B 共保存 N 个元素。
+代码：
+ class CQueue {
+    LinkedList<Integer> A, B;
+    public CQueue() {
+        A = new LinkedList<Integer>();
+        B = new LinkedList<Integer>();
+    }
+    public void appendTail(int value) {
+        A.addLast(value);
+    }
+    public int deleteHead() {
+        if(!B.isEmpty()) return B.removeLast();
+        if(A.isEmpty()) return -1;
+        while(!A.isEmpty())
+            B.addLast(A.removeLast());
+        return B.removeLast();
+    }
+}
+
+
+方法二
+解题思路：
+只使用一个栈 stack1 当作队列，另一个栈 stack2 用来辅助操作。
+
+要想将新加入的元素出现栈底，需要先将 stack1 的元素转移到 stack2，将元素入栈 stack1，最后将 stack2 的元素全部回到 stack1。
+
+class CQueue:
+
+    def __init__(self):
+        self.stack1 = []
+        self.stack2 = []
+
+    def appendTail(self, value: int) -> None:
+        # 1 -> 2
+        while self.stack1:
+            self.stack2.append(self.stack1.pop())
+        # add value
+        self.stack1.append(value)
+        # 1 <- 2
+        while self.stack2:
+            self.stack1.append(self.stack2.pop())
+        return self.stack1
+
+    def deleteHead(self) -> int:
+        if not self.stack1: return -1
+        return self.stack1.pop()
+
+复杂度分析
+1. 插入
+
+时间复杂度：O(n)。
+空间复杂度：O(n)，使用了辅助栈的空间。
+2. 删除
+
+时间复杂度：O(n)。
+空间复杂度：O(n)，stack1 当作了队列，直接在原队列上删除，没使用额外空间。
+
+
+
+
+
+ 
