@@ -1,0 +1,906 @@
+请定义一个队列并实现函数 max_value 得到队列里的最大值，要求函数max_value、push_back 和 pop_front 的均摊时间复杂度都是O(1)。
+
+若队列为空，pop_front 和 max_value 需要返回 -1
+
+示例 1：
+
+输入: 
+["MaxQueue","push_back","push_back","max_value","pop_front","max_value"]
+[[],[1],[2],[],[],[]]
+输出: [null,null,null,2,1,2]
+示例 2：
+
+输入: 
+["MaxQueue","pop_front","max_value"]
+[[],[],[]]
+输出: [null,-1,-1]
+ 
+
+限制：
+
+1 <= push_back,pop_front,max_value的总操作数 <= 10000
+1 <= value <= 10^5
+
+C++
+class MaxQueue {
+public:
+    MaxQueue() {
+
+    }
+    
+    int max_value() {
+        return qmax.size() == 0 ? -1 : qmax.front();
+    }
+    
+    void push_back(int value) {
+        qin.push(value);
+
+        while(qmax.size() && qmax.back() < value){
+            qmax.pop_back();
+        }
+
+        qmax.push_back(value);
+    }
+    
+    int pop_front() {
+        int frontNum = -1;
+        if(qin.size()) {
+            if(qmax.size() && qin.front() == qmax.front()){
+                qmax.pop_front();
+            }
+
+            frontNum = qin.front();
+            qin.pop();
+        }
+
+        return frontNum;
+    }
+private:
+    queue<int> qin;
+    deque<int> qmax;
+};
+
+/**
+ * Your MaxQueue object will be instantiated and called as such:
+ * MaxQueue* obj = new MaxQueue();
+ * int param_1 = obj->max_value();
+ * obj->push_back(value);
+ * int param_3 = obj->pop_front();
+ */
+ 
+ C++
+ *************************************************************************
+ 方法一
+ 使用两个队列 单调队列维护最大值
+ 1.使用两个队列：一个队列正常入队出队；再用一个双端队列来辅助作为单调队列，维护队头最大值。这样max_value()O(1)查询，单调队列队首的值就是查询的最大值。
+
+2.push_back入队的时候维护单调性，注意这里是可以有相同元素进入单调队列的。
+单调队列的维护思想：如果之前入队的队尾比后入队的当前元素还要小，就让队尾出队。—— “后浪”
+把比当前元素小的都出队了，那么队列剩余的都是比当前元素大的，所以是队列最终就是单调递增的，队首就是最大
+
+3.pop_front出队时，如果普通队列的队头元素等于单调队列的队头，那么单调队列队头也出队。
+
+其实与滑动窗口最大值思想类似
+
+class MaxQueue {
+public:
+    queue<int> queue;
+    deque<int> help;
+    MaxQueue() {
+
+    }
+    
+    int max_value() {
+        //单调队列队首就是最大值
+        return help.size() ? help.front() : -1;
+    }
+    
+    void push_back(int value) {
+        queue.push(value);
+        //维护单调队列的单调性 把小的都出队了 那么队列剩余的都是比当前元素大的 所以是单调递增的 队首就是最大值
+        //“后浪”思想:如果之前入队的队尾比后入队的当前元素还要小，就让队尾出队
+        while(help.size() && help.back() < value){
+            help.pop_back();
+        }
+        help.push_back(value);
+    }
+    
+    int pop_front() {
+        if(!queue.size()) return -1;
+        int topValue = queue.front();
+        queue.pop();
+        //当普通队列的队首元素 等于 单调队列队首 就让单调队列队首出队
+        if(help.size() && help.front() == topValue) 
+        	help.pop_front();
+        return topValue;
+    }
+};
+
+方法二
+思路
+
+直接实现一个普通的队列，查询最大值时遍历计算。
+
+class MaxQueue {
+    int q[20000];
+    int begin = 0, end = 0;
+public:
+    MaxQueue() {
+    }
+    
+    int max_value() {
+        int ans = -1;
+        for (int i = begin; i != end; ++i)
+            ans = max(ans, q[i]);
+        return ans;
+    }
+    
+    void push_back(int value) {
+        q[end++] = value;
+    }
+    
+    int pop_front() {
+        if (begin == end)
+            return -1;
+        return q[begin++];
+    }
+};
+复杂度分析
+
+时间复杂度：O(1)（插入，删除），O(n)（求最大值）。
+插入与删除只需要普通的队列操作，为 O(1)，求最大值需要遍历当前的整个队列，最坏情况下为 O(n)。
+空间复杂度：O(n)，需要用队列存储所有插入的元素。
+
+
+方法二：维护一个单调的双端队列
+思路
+
+本算法基于问题的一个重要性质：当一个元素进入队列的时候，它前面所有比它小的元素就不会再对答案产生影响。
+
+举个例子，如果我们向队列中插入数字序列 1 1 1 1 2，那么在第一个数字 2 被插入后，数字 2 前面的所有数字 1 将不会对结果产生影响。因为按照队列的取出顺序，数字 2 只能在所有的数字 1 被取出之后才能被取出，因此如果数字 1 如果在队列中，那么数字 2 必然也在队列中，使得数字 1 对结果没有影响。
+
+按照上面的思路，我们可以设计这样的方法：从队列尾部插入元素时，我们可以提前取出队列中所有比这个元素小的元素，使得队列中只保留对结果有影响的数字。这样的方法等价于要求维持队列单调递减，即要保证每个元素的前面都没有比它小的元素。
+
+那么如何高效实现一个始终递减的队列呢？我们只需要在插入每一个元素 value 时，从队列尾部依次取出比当前元素 value 小的元素，直到遇到一个比当前元素大的元素 value' 即可。
+
+上面的过程保证了只要在元素 value 被插入之前队列递减，那么在 value 被插入之后队列依然递减。
+而队列的初始状态（空队列）符合单调递减的定义。
+由数学归纳法可知队列将会始终保持单调递减。
+上面的过程需要从队列尾部取出元素，因此需要使用双端队列来实现。另外我们也需要一个辅助队列来记录所有被插入的值，以确定 pop_front 函数的返回值。
+
+保证了队列单调递减后，求最大值时只需要直接取双端队列中的第一项即可。
+
+class MaxQueue {
+    queue<int> q;
+    deque<int> d;
+public:
+    MaxQueue() {
+    }
+    
+    int max_value() {
+        if (d.empty())
+            return -1;
+        return d.front();
+    }
+    
+    void push_back(int value) {
+        while (!d.empty() && d.back() < value) {
+            d.pop_back();
+        }
+        d.push_back(value);
+        q.push(value);
+    }
+    
+    int pop_front() {
+        if (q.empty())
+            return -1;
+        int ans = q.front();
+        if (ans == d.front()) {
+            d.pop_front();
+        }
+        q.pop();
+        return ans;
+    }
+};
+
+复杂度分析
+
+时间复杂度：O(1)（插入，删除，求最大值）
+删除操作于求最大值操作显然只需要 O(1) 的时间。
+而插入操作虽然看起来有循环，做一个插入操作时最多可能会有 n 次出队操作。但要注意，由于每个数字只会出队一次，因此对于所有的 n 个数字的插入过程，对应的所有出队操作也不会大于 n 次。因此将出队的时间均摊到每个插入操作上，时间复杂度为 O(1)。
+空间复杂度：O(n)，需要用队列存储所有插入的元素。
+
+方法四
+解题思路
+此处撰写解题思路
+分析：利用两个栈定义队列，再用一个栈存放最大值。（x）
+
+进一步分析：队列的特点是先进先出，若要判断其max或min，不能直接采用栈的方式。假设队列元素为942353637。若采用栈的方式第一个元素9低于个进，同样也会第一个出去。由于后面数均小于9，辅助栈中也不存在其他元素，也就是说，9一出去，辅助栈为空，无法判断。。。。。。那么需要利用一个辅助队列，辅助队列不仅要留最大数，还得留小于最大数的数。
+
+按照下图进一步分析：
+
+
+ 队列2中第一个进入的元素是9，若只保留最大数，则9出去后，辅助队列不再存在其他元素，无法求最大值，故需将7也放入队列2中，即步骤2-1。
+
+之后再进8，由于8大于7，9出队列之后、8出队列之前，最大值均是8，7无作用，故可删除7，进8，（步骤2-2）
+
+同样，9仅队列后，8也不发挥作用，故删除8（步骤2-3）
+
+之后进入3，再进入4，4>3，故保留4即可。
+
+以此类推
+
+直到最后一个元素5进去，5大于3，故3删除，5大于4，4删除。辅助队列仅存995.
+
+
+总结起来，辅助队列中存在元素的作用为：辅助队列元素能掌控的范围为队列中其位置之前的元素。第2个9的范围为1-3.5的范围为4-9.（可将辅助队列看做是将军，即队列1中的小兵一定得被辅助队列的将军所掌管）
+
+class MaxQueue {
+public:
+    MaxQueue() {
+
+    }
+    
+    int max_value() {
+		if (q2.empty()) return -1;
+		return q2.front();
+    }
+    
+    void push_back(int value) {
+		// q1 push
+		q1.push_back(value);
+		// q2 push
+		while (!q2.empty() && q2.back() < value)
+		{
+			q2.pop_back();
+		}
+		q2.push_back(value);
+    }
+    
+    int pop_front() {
+		if (q1.empty()) return -1;
+		else
+		{
+			if (q1.front() == q2.front()) q2.pop_front();
+			int popvalue = q1.front();
+            q1.pop_front();
+            return popvalue;
+		}
+    }
+private:
+	deque<int> q1, q2;
+};
+
+/**
+ * Your MaxQueue object will be instantiated and called as such:
+ * MaxQueue* obj = new MaxQueue();
+ * int param_1 = obj->max_value();
+ * obj->push_back(value);
+ * int param_3 = obj->pop_front();
+ */
+
+方法五
+双栈模拟队列
+解题思路
+1.平摊法的一个典型例子
+模拟队列Q（first in first out），要求平摊时间代价O(1)的典型方法： 用栈（first in last out）两个（设为A，B）模拟队列
+队列的 push_back操作 --------> 栈A的入栈操作
+队列的 pop_front操作 --------> 栈B的出栈操作
+此时注意，如果 pop_front 的时候，B中没有元素，但是队列Q中应当还有元素（其实该元素在A中），
+此时将栈A依次出栈，每出栈一个，就对B入栈一个，直至A为空为止。此时对B出栈操作就完成了pop_front
+例如：push_back(1)， push_back(2)，pop_front()操作序列：依次列出每个操作对应的栈操作（们）
+1.A中：底 -> “1” -> 顶 B中：空
+2.A中：底 -> “1” -> “2” -> 顶 B中：空
+3.B中为空。A出栈第一个元素"2"，B入栈“2”；A出栈第二个元素“1“，B入栈”1“
+此时A中：空 B中：底 -> “2” -> "1" -> 顶
+此时对B出栈顶元素“1”。此即是队列Q的正确操作模拟的一个示例
+用基本的势能法，应该就能分析出来，这个操作平摊代价是O(1)的
+2.c++不能用stack时候模拟栈：
+这个应该很简单：一个数组+一个整数标记栈顶位置即可
+3.最后加上max_value操作：
+这个我就随便一加，基本是最笨的方法。但好像就够使了
+
+代码
+
+class MaxQueue {
+public:
+    int aa;
+    int bb;
+    int maxx;
+    int *a;
+    int *b;
+    MaxQueue() {
+        a=new int[10000]{};
+        b=new int[10000]{};
+        aa=0;
+        bb=0;
+        maxx=0;
+    }
+
+    int max_value() {
+        if(aa==0&&bb==0){
+            return -1;
+        }
+        else{
+            return maxx;
+        }
+    }
+
+    void push_back(int value) {
+        if(value>maxx){
+            maxx=value;
+        }
+        a[aa]=value;
+        ++aa;
+    }
+
+    int pop_front() {
+        int tmp=0;
+        if(bb>0){
+            tmp=b[--bb];
+            if(tmp==maxx){
+                int tmax=0;
+                if(aa!=0){
+                    for(int i=0;i<aa;++i){
+                        if(tmax<a[i]){
+                            tmax=a[i];
+                        }
+                    }
+                }
+                if(bb!=0){
+                    for(int i=0;i<bb;++i){
+                        if(tmax<b[i]){
+                            tmax=b[i];
+                        }
+                    }
+                }
+                maxx=tmax;
+            }
+            return tmp;
+        }
+        else if(aa<=0){
+            return -1;
+        }
+        else{
+            bb=aa;
+            aa=0;
+            for(int i=0;i<bb;++i){
+                b[bb-1-i]=a[i];
+                a[i]=0;
+            }
+            tmp=b[--bb];
+            if(tmp==maxx){
+                int tmax=0;
+                if(aa!=0){
+                    for(int i=0;i<aa;++i){
+                        if(tmax<a[i]){
+                            tmax=a[i];
+                        }
+                    }
+                }
+                if(bb!=0){
+                    for(int i=0;i<bb;++i){
+                        if(tmax<b[i]){
+                            tmax=b[i];
+                        }
+                    }
+                }
+                maxx=tmax;
+            }
+            return tmp;
+        }
+    }
+};
+
+
+/**
+ * Your MaxQueue object will be instantiated and called as such:
+ * MaxQueue* obj = new MaxQueue();
+ * int param_1 = obj->max_value();
+ * obj->push_back(value);
+ * int param_3 = obj->pop_front();
+ */
+
+
+Java
+********************************************************************
+方法一
+这里仅仅对涉及到的知识点进行复习：
+
+ArrayList是顺序结构，所以定位很快，但插入，删除数据慢。
+LinkedList 是链表结构，定位慢，但插入，删除数据快。
+
+ArrayList实现了List接口，常见方法有：
+add(); contains(); get(); indexOf():定位对象所处的位置; remove(); size(); toArray(); toString();//转换为字符串
+
+LinkedList也实现了List接口外，可以实现上述ArrayList中的常用方法，此外：
+1.LinkedList还实现了双向链表结构Deque，可以很方便的在头尾插入删除数据。
+LinkedList<class> link = new LinkedList<>();
+常用方法：addFirst(); addLast(); getFirst(); getLast(); removeFirst(); removeLast();
+
+2.LinkedList除了实现了List和Deque外，还实现了Queue接口(队列),Queue是先进先出队列 FIFO。
+Queue<class> queue = new LinkedList<>();
+常用方法：poll()取出第一个元素; peek()查看第一个元素; offer()在最后添加元素,可用add()替换;
+
+先进后出FILO Stack栈：
+Stack<class> stack = new Stack<>();
+常用方法：push();可用add();代替 pop();输出末尾的元素相当于LinkedList中的removeLast(); peek();查看最后一个元素，相当于getLast();
+
+本题具体的Java代码如下：
+public class MaxQueue {
+
+    Queue<Integer> queue;
+    LinkedList<Integer> max;
+    public MaxQueue() {
+        queue = new LinkedList<>();
+        max = new LinkedList<>();//LinkedList是双端链表
+    }
+    
+    public int max_value() {
+        return max.size()==0?-1:max.getFirst();
+    }
+    
+    public void push_back(int value) {
+        queue.add(value);
+        while(max.size()!=0&&max.getLast()<value){//注意：这里第二个判断条件不能带等号，即max中对于当前queue中的具有相同值的元素会全部存储，而不是存储最近的那个。
+            max.removeLast();
+        }
+        max.add(value);
+    }
+    
+    public int pop_front() {
+        if(max.size()!=0&&queue.peek().equals(max.getFirst()))//Integer类型的值的比较不能直接使用==
+            max.removeFirst();
+        return queue.size()==0?-1:queue.poll();
+    }
+    
+    /**
+     * Your MaxQueue object will be instantiated and called as such:
+     * MaxQueue obj = new MaxQueue();
+     * int param_1 = obj.max_value();
+     * obj.push_back(value);
+     * int param_3 = obj.pop_front();
+     */
+}
+
+方法二
+双端队列实现队列最大值
+class MaxQueue {
+    Queue<Integer> queue;
+    Deque<Integer> help;//使用双端队列
+    public MaxQueue() {
+        queue = new LinkedList<>();
+        help = new LinkedList<>();
+    }
+    //若辅助队列为空，返回-1，不然就返回队首
+    public int max_value() {
+        if(help.isEmpty()) return -1;
+        return help.peekFirst();
+    }
+    //队列常规加入，辅助队列需要判断，加入的元素要满足辅助队列从大到小，比当前小的就要删除，然后加入自己的位置，注意点这里相同的也需要加入！
+    public void push_back(int value) {
+        queue.offer(value);
+        //辅助队列保持从大到小
+        while(!help.isEmpty() && value > help.peekLast()){
+            help.removeLast();
+        }
+        help.addLast(value);
+    }
+    //如果常规队列是空就返回-1，不然正常返回，辅助队列需要判断是否是最大值，是的话就要删除，但不影响相同最大值。
+    public int pop_front() {
+        if(queue.isEmpty()) return -1;
+        int e = queue.remove();
+        if(e == help.peekFirst()){
+            help.removeFirst();
+        }
+        return e;
+    }
+}
+/**
+ * Your MaxQueue object will be instantiated and called as such:
+ * MaxQueue obj = new MaxQueue();
+ * int param_1 = obj.max_value();
+ * obj.push_back(value);
+ * int param_3 = obj.pop_front();
+ */
+
+方法三
+使用标准栈
+    /*
+    我们使用一个队列正常的存放数据，
+    然后使用维护一个单调栈，栈顶为最大值
+    再加一个辅助栈
+
+    元素插入顺序：1   3   5   5   2   6   1   2
+
+    （栈的元素最左边为栈底，最右边为栈顶，队列也一样）
+    插入 1：
+    queue = {1}
+    stack = {1}
+    插入 3
+    queue = {3, 1}
+    stack = {3}
+    (
+        这里为什么 stack 是 3？之前的 1 哪去了？
+        因为 1 比 3 先插入，因此最先 poll() 的必定会是 1，而在 poll 3 之前，无论 1 是否存在，最大值都会是 3，因此 1 的存在无关紧要
+        这里我们就可以知道，只要后面进来一个比之前存储元素都要大的，那么前面的小元素都无关紧要了，清空栈，只入栈这个最大元素
+    )
+    插入 5
+    queue = {5, 3, 1}
+    stack = {5}
+    插入 5
+    queue = {5，5, 3, 1}
+    stack = {5，5}
+    (
+        插入跟栈顶元素一样大的值，这个就不必多说什么了吧，直接入栈即可
+    )
+    插入 2
+    queue = {2, 5, 5, 3, 1}
+    stack = {2, 5, 5}
+    (
+        这里为什么 2 又存在了？ 而且是在栈底？
+        因为 5 比 2 先插入，因此最先 poll() 的一定会是 5，那么当 poll 5 的时候，前面的 1 和 3 也都已经 poll() 了
+        那么队列剩下的就是 5 后面插入元素的最大值，即 2，因此我们需要留下 2
+    )
+    插入 6
+    queue = {6, 2, 5, 5, 3, 1}
+    stack = {6}
+    插入 1
+    queue = {1, 6, 2, 5, 5, 3, 1}
+    stack = {1, 6}
+    插入 2
+    queue = {2, 1, 6, 2, 5, 5, 3, 1}
+    stack = {2, 6}
+    (
+        这里为什么是 2 在底部？ 1 哪去了？
+        6 比 后面的 1 和 2 都先插入，因此在 poll 6 之前， 6 是最大的
+        而 1 比 2 先插入，因此在 poll 2 之前，前面的 1 是否存在无关紧要，当 poll 6 后，最大值就会是 6 后面插入元素的最大值。即 2
+        这里我们就知道，我们当插入元素比 栈顶元素 小的时候，我们需要清空掉 栈内所有比 插入元素小的值，然后入栈
+        （这里做法就是 面试题 03.05. 栈排序 的做法）
+    )
+    */
+
+class MaxQueue {
+
+
+    Queue<Integer> queue;
+    Deque<Integer> stack;
+    Deque<Integer> helper_stack;
+    public MaxQueue() {
+        queue = new LinkedList<>();
+        stack = new LinkedList<>();
+        helper_stack = new LinkedList<>();
+    }
+    
+    public int max_value() {
+        if(queue.isEmpty()){
+            return -1;
+        }
+        return stack.peek();
+    }
+    
+    public void push_back(int value) {
+        queue.add(value);
+        //栈为空，直接入栈
+        if(stack.isEmpty()){
+            stack.push(value);
+        }else{
+            if(stack.peek() < value){   //当栈顶元素比当前元素小，那么清空栈，然后将 value 入栈
+                stack.clear();
+                stack.push(value);
+            }else if(stack.peek() == value){    //当栈顶元素等于当前元素，那么直接入栈
+                stack.push(value);
+            }else{
+                while(!stack.isEmpty() && stack.peek() >= value){   //当栈顶元素大于当前元素，将大于等于 value 的值压入辅助栈
+                    helper_stack.push(stack.pop());
+                }
+                //压入插入元素
+                helper_stack.push(value);
+                //清空 stack 
+                stack.clear();
+                //重新将辅助栈的值压回 stack
+                while(!helper_stack.isEmpty()){
+                    stack.push(helper_stack.pop());
+                }
+            }
+        }
+    }
+    
+    public int pop_front() {
+        if(queue.isEmpty()){
+            return -1;
+        }
+        int temp = queue.poll();
+        if(stack.peek() == temp){
+            stack.pop();
+        }
+        return temp;
+    }
+}
+
+方法四
+使用两个数组
+题目的限制条件：
+1 <= push_back,pop_front,max_value的总操作数 <= 10000
+1 <= value <= 10^5
+
+题目给的限制条件，限制了操作的总数，就可以使用最原始的数据结构，数组来进行解题
+数组的长度为限定的操作总数
+
+该题是要模拟队列，而且要求的时间复杂度都是O(1)，用空间换时间（数组赋予可能的最大的长度）
+使用两个数组，一个数组Queue模拟正常队列的入队和出队；一个数组MAXQueue用于实现max_value()方法，MAXQueue数组中的元素是递减的
+使用头尾指针来模拟入队和出队的操作
+
+为什么使用MAXQueue来记录队列中的最大值？
+题目要求的时间复杂度都是O(1)，只用单个的int对象来记录最值的话，一旦最值被pop，那么对队列中之前添加的元素就没有了任何的记录，不知道谁是此时最大的，需要重新的遍历队列，这样做时间复杂度不符合要求，所以要用数组记录添加到队列中的元素，并由大到小的排列。优化该数组的分析在下面写了
+
+分析
+max_value()
+如果MAXQueueHead == MAXQueueTail 表示队列中没有元素，返回-1
+在MAXQueue的头指针的位置保存的就是此时队列中的最大值，直接的取值就可以，时间复杂度是O(1)
+push_back():
+Queue数组正常的进行添加数据，Queue[QueueTail++] = value;
+在进行入队的时候，在MAXQueue中需要进行判断，时间复杂度均摊下来也是O(1)：
+比value小的值，一定会在value出栈前，先出栈，队列中的最大值最少都是value，就没有保存比value小的值的必要了，MAXQueueTail指向的索引，在数组MAXQueue中还没被赋值，判断的时候需要使用MAXQueueTail-1
+MAXQueue[MAXQueueTail-1] < value
+pop_front()
+Queue中Head的值 与 MAXQueue中Head的值相等，则两个数组中的head都要 ++ ，因为最大值已经变了
+不然，就是常规的Queue中的head++，时间复杂度是O(1)
+代码
+
+class MaxQueue {
+
+    int[] Queue;
+    int QueueHead = 0;
+    int QueueTail = 0;
+    int[] MAXQueue;
+    int MAXQueueHead = 0;
+    int MAXQueueTail = 0;
+
+    public MaxQueue() {
+        Queue = new int[10000];
+        MAXQueue = new int[10000];
+    }
+    
+    public int max_value() {
+        if(MAXQueueHead == MAXQueueTail){
+            // 头尾相等的时候，表示此时队列为空，没有最大值
+            return -1;
+        }
+        return MAXQueue[MAXQueueHead];
+    }
+    
+    public void push_back(int value) {
+        Queue[QueueTail++] = value;
+        while(MAXQueueHead != MAXQueueTail && MAXQueue[MAXQueueTail-1] < value){
+            // MAXQueueTail-1 因为MAXQueueTail处的值是0，还没有被初始化
+            // 比value小的值，一定会在value出栈前，先出栈，
+            // 队列中的最大值最少都是value，就没有保存比value小的值的必要了
+            MAXQueueTail--;
+        }
+        MAXQueue[MAXQueueTail++] = value;
+
+    }
+    
+    public int pop_front() {
+        if(QueueHead == QueueTail){
+            // 队列为空
+            return -1;
+        }
+        int res = Queue[QueueHead];
+        if(res == MAXQueue[MAXQueueHead]){
+            MAXQueueHead++;
+        }
+        QueueHead++;
+        return res;
+    }
+}
+
+/**
+ * Your MaxQueue object will be instantiated and called as such:
+ * MaxQueue obj = new MaxQueue();
+ * int param_1 = obj.max_value();
+ * obj.push_back(value);
+ * int param_3 = obj.pop_front();
+ */
+
+方法五
+单数组
+解题思路
+用移动坐标的思路代替双数组
+
+代码
+class MaxQueue {
+
+    private List<Integer> queue;
+    private int i,curr,max;
+    public MaxQueue() {
+        i = 0;
+        curr= -1;
+        queue = new ArrayList<>();
+        max = -1;
+    }
+
+    public int max_value() {
+        if(max == -1 || max >= queue.size()){
+            return -1;
+        }
+        return queue.get(max);
+    }
+
+    public void push_back(int value) {
+        ++curr;
+        queue.add(value);
+        if(max == -1){
+            max = curr;
+        }
+        if(queue.get(max) <= value){
+            max = curr;
+        }
+    }
+
+    public int pop_front() {
+        if(queue.isEmpty() || i >= queue.size()){
+            return -1;
+        }
+        int first = queue.get(i);
+        if(i == max){
+            int j = ++i;
+            ++max;
+            while(j < queue.size()){
+                max = queue.get(max) <= queue.get(j) ? j : max;
+                ++j;
+            }
+        } else {
+            ++i;
+        }
+        return first;
+    }
+}
+
+/**
+ * Your MaxQueue object will be instantiated and called as such:
+ * MaxQueue obj = new MaxQueue();
+ * int param_1 = obj.max_value();
+ * obj.push_back(value);
+ * int param_3 = obj.pop_front();
+ */
+
+Python
+*************************************************************************
+ 方法一
+ 直接实现一个普通的队列，查询最大值时遍历计算。
+ import queue
+class MaxQueue:
+
+    def __init__(self):
+        self.deque = queue.deque()
+
+    def max_value(self) -> int:
+        return max(self.deque) if self.deque else -1
+
+    def push_back(self, value: int) -> None:
+        self.deque.append(value)
+
+    def pop_front(self) -> int:
+        return self.deque.popleft() if self.deque else -1
+
+方法二：维护一个单调的双端队列
+import queue
+class MaxQueue:
+
+    def __init__(self):
+        self.deque = queue.deque()
+        self.queue = queue.Queue()
+
+    def max_value(self) -> int:
+        return self.deque[0] if self.deque else -1
+
+
+    def push_back(self, value: int) -> None:
+        while self.deque and self.deque[-1] < value:
+            self.deque.pop()
+        self.deque.append(value)
+        self.queue.put(value)
+
+    def pop_front(self) -> int:
+        if not self.deque:
+            return -1
+        ans = self.queue.get()
+        if ans == self.deque[0]:
+            self.deque.popleft()
+        return ans
+
+方法三
+队列和递减队列
+解题思路
+（1）队列queue正常入队和出队；队列max_queue保存递减元素，出队列中最大值时，从max_queue中弹出首个元素max_queue[0]
+（2）关键在于如何 a）入队和 b）出队 才能保证max_queue是递减队列
+（3）a) 入队时，queue正常入队，max_queue需要判断当前value 与max_queue队尾元素max_queue[-1]的大小，如果value 大于max_queue[-1]，则依次将max_queue的队尾元素弹出，然后添加value
+（4）b) 出队时，queue正常出队，max_queue需要判断，出队的元素是否是最大值，如果queue[0]==max_queue[0],则max_queue 也需要出队
+
+代码
+
+class MaxQueue:
+
+    def __init__(self):
+        self.queue=[]
+        self.max_queue=[]
+        
+    def max_value(self) -> int:
+        if not self.queue:
+            return -1
+        print(self.max_queue)
+        return self.max_queue[0]
+        
+
+    def push_back(self, value: int) -> None:
+        self.queue.append(value)
+        while self.max_queue and value > self.max_queue[-1]:
+                self.max_queue.pop(-1)
+        self.max_queue.append(value)
+
+    def pop_front(self) -> int:
+        if not self.queue:
+            return -1
+        if self.queue[0]==self.max_queue[0]:
+            self.max_queue.pop(0)
+        return self.queue.pop(0)
+
+
+# Your MaxQueue object will be instantiated and called as such:
+# obj = MaxQueue()
+# param_1 = obj.max_value()
+# obj.push_back(value)
+# param_3 = obj.pop_front()
+
+方法四
+单调栈
+单调栈：
+
+pythongolanggolang
+
+class MaxQueue:
+
+    def __init__(self):
+        self.q = collections.deque()
+        self.p = collections.deque()
+
+    def max_value(self) -> int:
+        return not self.q and -1 or self.p[0]
+
+    def push_back(self, value: int) -> None:
+        self.q.append(value)
+        while self.p and value > self.p[-1]:
+            del self.p[-1]
+        self.p.append(value)
+
+    def pop_front(self) -> int:
+        if not self.q:
+            return -1
+        self.q[0] == self.p[0] and self.p.popleft()
+        return self.q.popleft()
+二分插入：
+
+python
+
+class MaxQueue:
+
+    def __init__(self):
+        self.q = collections.deque()
+        self.p = []
+
+    def max_value(self) -> int:
+        return not self.q and -1 or self.p[-1]
+
+    def push_back(self, value: int) -> None:
+        self.q.append(value)
+        bisect.insort(self.p, value)
+
+    def pop_front(self) -> int:
+        if not self.q:
+            return -1
+        del self.p[bisect.bisect(self.p, self.q[0]) - 1]
+        return self.q.popleft()
+时间复杂度不一样，但实际线上测试差不多。
+
