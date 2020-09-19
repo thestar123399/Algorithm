@@ -1,0 +1,338 @@
+给定一个整数数组 asteroids，表示在同一行的行星。
+
+对于数组中的每一个元素，其绝对值表示行星的大小，正负表示行星的移动方向（正表示向右移动，负表示向左移动）。每一颗行星以相同的速度移动。
+
+找出碰撞后剩下的所有行星。碰撞规则：两个行星相互碰撞，较小的行星会爆炸。如果两颗行星大小相同，则两颗行星都会爆炸。两颗移动方向相同的行星，永远不会发生碰撞。
+
+示例 1:
+
+输入: 
+asteroids = [5, 10, -5]
+输出: [5, 10]
+解释: 
+10 和 -5 碰撞后只剩下 10。 5 和 10 永远不会发生碰撞。
+示例 2:
+
+输入: 
+asteroids = [8, -8]
+输出: []
+解释: 
+8 和 -8 碰撞后，两者都发生爆炸。
+示例 3:
+
+输入: 
+asteroids = [10, 2, -5]
+输出: [10]
+解释: 
+2 和 -5 发生碰撞后剩下 -5。10 和 -5 发生碰撞后剩下 10。
+示例 4:
+
+输入: 
+asteroids = [-2, -1, 1, 2]
+输出: [-2, -1, 1, 2]
+解释: 
+-2 和 -1 向左移动，而 1 和 2 向右移动。
+由于移动方向相同的行星不会发生碰撞，所以最终没有行星发生碰撞。
+说明:
+
+数组 asteroids 的长度不超过 10000。
+每一颗行星的大小都是非零整数，范围是 [-1000, 1000] 。
+
+C++
+class Solution {
+public:
+    vector<int> asteroidCollision(vector<int>& asteroids) {
+        stack<int> st;
+        vector<int> res;
+        int size = asteroids.size();
+
+        for(int i = 0; i < size; i++){
+            while(i<size && !st.empty() && st.top() > 0 && asteroids[i] < 0){
+                int n = st.top() + asteroids[i];
+                if(n < 0){
+                    st.pop();
+                }
+                else if(n == 0){
+                    st.pop();
+                    i++;
+                }
+                else{
+                    i++;
+                }
+            }
+
+            if(i < size)
+                st.push(asteroids[i]);
+        }
+
+        while(!st.empty()){
+            res.push_back(st.top());
+            st.pop();
+        }
+
+        reverse(res.begin(),res.end());
+
+        return res;
+    }
+};
+
+C++
+**********************************************
+方法一
+class Solution {
+public:
+    vector<int> asteroidCollision(vector<int>& asteroids) {
+        vector<int> r;
+        for(int a: asteroids){
+            if(a>0){
+                r.push_back(a);
+                continue;
+            }
+            
+            while(!r.empty() && r.back()>0 && r.back()+a<0) r.pop_back();
+            if(r.empty() || r.back()<0) r.push_back(a);
+            else if(r.back()+a==0) r.pop_back();
+        }
+        return r;
+    }
+};
+
+方法二
+栈
+解题思路
+利用栈思想：
+1.先压入1个哨兵-1；
+2.当元素为正时，直接压入；
+3.当元素为负时，弹出栈顶元素。进行计算
+1）如果和为0，直接break;
+2) 如果和为负数，进行下一个循环继续弹出
+3）如果和为负数，且栈顶为负数，则终止循环，压入弹出的栈顶元素和当前元素
+4.最后删除哨兵
+
+看起来简单，写起来海挺恶心的
+
+代码
+
+class Solution {
+public:
+    vector<int> asteroidCollision(vector<int>& asteroids) {
+
+        vector<int> buff;
+        buff.push_back(-1);
+
+        for (int i = 0; i < asteroids.size();i++){
+
+            while(asteroids[i]<0){
+                int value = buff.back();
+                buff.pop_back();
+
+                if(value+asteroids[i]>0){
+                    buff.push_back(value);
+                    break;
+                }else if(value+asteroids[i] == 0){
+                    break;
+                }else if(value<0 && value+asteroids[i]<0){
+                    buff.push_back(value);
+                    buff.push_back(asteroids[i]);
+                    break;
+                }
+            }
+
+            if(asteroids[i]>=0){
+                buff.push_back(asteroids[i]);
+            }
+        }
+
+        buff.erase(buff.begin());
+
+        return buff;
+    }
+};
+
+或者
+使用栈模拟行星碰撞，对 asteroids 进行顺序遍历或者逆序遍历都是可以的，结果都是由最终的栈生成 vector 进行返回。如果出栈次序的数据跟结果需要的次序相反，可以根据栈的大小先生成 vector，再通过下标访问得到结果。
+
+Talk is cheap. Show me the code.
+
+
+class Solution {
+public:
+    vector<int> asteroidCollision(vector<int>& asteroids) {
+        stack<int> stk;
+        auto i = asteroids.size();
+        for (; i > 0; i--) {
+            int e = asteroids[i-1];
+            while (!stk.empty() && stk.top() < 0 && e > 0) {
+                if (stk.top() + e == 0) e = 0;
+                else if (stk.top() + e < 0) e = stk.top();
+                else ;
+                stk.pop();
+            }
+            if (e != 0) {
+                stk.push(e);
+            }
+        }
+        vector<int> result(stk.size());
+        while (!stk.empty()) {
+            result[i++] = (stk.top());
+            stk.pop();
+        }
+        return result;
+    }
+};
+
+Java
+*********************************************************
+方法一：栈
+如果不会发生碰撞那么一排小行星是处于稳定的状态。若在右边增加一个新的小行星后，在它再次稳定之前，可能会发生更多的碰撞，而所有的这些碰撞（如果发生的话）都必须从右到左发生。这种情况非常适合用栈解决。
+
+算法：
+
+假设栈中顶部元素为 top，一个新的小行星 new 进来了。如果 new 向右移动（new>0），或者 top 向左移动（top<0），则不会发生碰撞。
+否则，如果 abs(new) < abs(top)，则新小行星 new 将爆炸；如果 abs(new) == abs(top)，则两个小行星都将爆炸；如果 abs(new) > abs(top)，则 top 小行星将爆炸（可能还会有更多小行星爆炸，因此我们应继续检查）。
+
+Java
+
+class Solution {
+    public int[] asteroidCollision(int[] asteroids) {
+        Stack<Integer> stack = new Stack();
+        for (int ast: asteroids) {
+            collision: {
+                while (!stack.isEmpty() && ast < 0 && 0 < stack.peek()) {
+                    if (stack.peek() < -ast) {
+                        stack.pop();
+                        continue;
+                    } else if (stack.peek() == -ast) {
+                        stack.pop();
+                    }
+                    break collision;
+                }
+                stack.push(ast);
+            }
+        }
+
+        int[] ans = new int[stack.size()];
+        for (int t = ans.length - 1; t >= 0; --t) {
+            ans[t] = stack.pop();
+        }
+        return ans;
+    }
+}
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是行星的数量。
+空间复杂度：O(N)，ans 使用的空间。
+
+方法二
+数组模拟栈
+class Solution {
+    public int[] asteroidCollision(int[] asteroids) {
+        int[] res = new int[asteroids.length];
+        int index =-1;
+        for(int i=0;i<asteroids.length;i++){
+            int val =asteroids[i];
+            if(index == -1){
+                res[++index]=val;
+            }
+            else{
+                if(res[index]* val >0){
+                    res[++index] =val;
+                }
+                else{
+                    if(val >0)
+                        res[++index] =val;
+                    else{
+                        if(res[index] + val <0)
+                        {
+                            index--;
+                            i--;
+                        }
+                        else if(res[index] + val ==0){
+                            index--;
+                        }
+                    }
+                }
+            }
+        }
+        int[] ans = new int[index+1];
+        for(int i=0;i<=index;i++){
+            ans[i]=res[i];
+        }
+        return ans;
+    }
+}
+
+
+
+
+Python
+***********************************************************
+方法一：栈
+如果不会发生碰撞那么一排小行星是处于稳定的状态。若在右边增加一个新的小行星后，在它再次稳定之前，可能会发生更多的碰撞，而所有的这些碰撞（如果发生的话）都必须从右到左发生。这种情况非常适合用栈解决。
+
+算法：
+
+假设栈中顶部元素为 top，一个新的小行星 new 进来了。如果 new 向右移动（new>0），或者 top 向左移动（top<0），则不会发生碰撞。
+否则，如果 abs(new) < abs(top)，则新小行星 new 将爆炸；如果 abs(new) == abs(top)，则两个小行星都将爆炸；如果 abs(new) > abs(top)，则 top 小行星将爆炸（可能还会有更多小行星爆炸，因此我们应继续检查）。
+
+class Solution(object):
+    def asteroidCollision(self, asteroids):
+        ans = []
+        for new in asteroids:
+            while ans and new < 0 < ans[-1]:
+                if ans[-1] < -new:
+                    ans.pop()
+                    continue
+                elif ans[-1] == -new:
+                    ans.pop()
+                break
+            else:
+                ans.append(new)
+        return ans
+
+复杂度分析
+
+时间复杂度：O(N)，其中 N 是行星的数量。
+空间复杂度：O(N)，ans 使用的空间。
+
+
+方法二
+解题思路
+维护一个栈。控制尾部行星的爆炸。
+
+代码
+
+class Solution:
+    def asteroidCollision(self, asteroids: List[int]) -> List[int]:
+        l = []
+        for a in asteroids:
+            while len(l) != 0 and l[-1] > 0 and a < 0 and l[-1] < -a:
+                l.pop()
+            if len(l) == 0:
+                l.append(a)
+                continue
+            if l[-1] > 0 and a < 0:
+                if l[-1] == -a:
+                    l.pop()
+            else:
+                l.append(a)
+        return l
+
+方法三
+数组
+保证每次条件统一，先把新行星打进结果数组。
+
+
+class Solution:
+    def asteroidCollision(self, asteroids: List[int]) -> List[int]:
+        res_list = []
+        for planet in asteroids:
+            res_list.append(planet)
+            while (len(res_list)>1 and res_list[-1]<0 and res_list[-2] > 0):
+                first = res_list.pop()
+                second = res_list.pop()
+                if first+second==0:
+                    break
+                res_list.append(first if abs(first)>abs(second) else second)
+                
+        return res_list
