@@ -1,0 +1,865 @@
+实现 FreqStack，模拟类似栈的数据结构的操作的一个类。
+
+FreqStack 有两个函数：
+
+push(int x)，将整数 x 推入栈中。
+pop()，它移除并返回栈中出现最频繁的元素。
+如果最频繁的元素不只一个，则移除并返回最接近栈顶的元素。
+ 
+
+示例：
+
+输入：
+["FreqStack","push","push","push","push","push","push","pop","pop","pop","pop"],
+[[],[5],[7],[5],[7],[4],[5],[],[],[],[]]
+输出：[null,null,null,null,null,null,null,5,7,5,4]
+解释：
+执行六次 .push 操作后，栈自底向上为 [5,7,5,7,4,5]。然后：
+
+pop() -> 返回 5，因为 5 是出现频率最高的。
+栈变成 [5,7,5,7,4]。
+
+pop() -> 返回 7，因为 5 和 7 都是频率最高的，但 7 最接近栈顶。
+栈变成 [5,7,5,4]。
+
+pop() -> 返回 5 。
+栈变成 [5,7,4]。
+
+pop() -> 返回 4 。
+栈变成 [5,7]。
+ 
+
+提示：
+
+对 FreqStack.push(int x) 的调用中 0 <= x <= 10^9。
+如果栈的元素数目为零，则保证不会调用  FreqStack.pop()。
+单个测试样例中，对 FreqStack.push 的总调用次数不会超过 10000。
+单个测试样例中，对 FreqStack.pop 的总调用次数不会超过 10000。
+所有测试样例中，对 FreqStack.push 和 FreqStack.pop 的总调用次数不会超过 150000。
+
+C++
+class FreqStack {
+public:
+    FreqStack() {
+
+    }
+    
+    void push(int x) {
+        frqmap[x]++;
+        m[frqmap[x]].push(x);
+        maxfrq = max(frqmap[x],maxfrq);
+    }
+    
+    int pop() {
+        int tmp = m[maxfrq].top();
+        frqmap[tmp]--;
+        m[maxfrq].pop();
+        if(m[maxfrq].empty()) maxfrq--;
+
+        return tmp;
+    }
+private:
+    map<int,int> frqmap;
+    map<int,stack<int>> m;
+    int maxfrq = 0;
+};
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack* obj = new FreqStack();
+ * obj->push(x);
+ * int param_2 = obj->pop();
+ */
+ 
+ 
+C++
+************************************************************
+方法一
+class FreqStack {
+public:
+    unordered_map<int,int>freq;//key->freq;
+    int maxFreq;
+    unordered_map<int,stack<int>>group;//freq->key
+    FreqStack() {
+        maxFreq=0;
+    }
+    
+    void push(int x) {
+        freq[x]++;
+        maxFreq=max(maxFreq,freq[x]);
+        //假如原本x的freq为1，增加之后变成2，这里只是在频率为2的stack里新增了一个x，但是并没有删除频率为1的stack中的x。
+        //这样可以保证，当x被pop之后，在频率为1的stack里元素的顺序不会被修改。
+        group[freq[x]].push(x);
+    }
+    
+    int pop() {
+        int x=group[maxFreq].top();
+        group[maxFreq].pop();
+        freq[x]--;
+        if(group[maxFreq].size()==0) maxFreq--;
+        return x;
+    }
+};
+
+方法二
+解题思路
+依据题意，要在数据随机位置进行删除，考虑 list
+
+删除依据为频率 + push 的顺序，创建两个 map ，分别为
+
+1）由频率得到数据
+
+2）由值得到频率
+
+注意，对于相同的值，在数据中不同位置，其频率是不同的，这个是上述 1）的依据
+
+而对于每个值，我们只关系其最高频率，所以上述 2）只需记录一个
+
+后根据 push 和 pop 的相关条件即可得出
+
+代码
+
+class FreqStack {
+    typedef list<int>::iterator iter;
+    list<int> datas;
+    map<int, vector<iter>> freq2Iter;
+    map<int, int> val2freq;
+public:
+    FreqStack() {
+        datas.clear();
+        freq2Iter.clear();
+    }
+    
+    void push(int x) {
+        datas.push_front(x);
+        ++val2freq[x];
+        freq2Iter[val2freq[x]].push_back(datas.begin());
+    }
+    
+    int pop() {
+        if (datas.empty())
+            return -1;
+        iter cur = (freq2Iter.rbegin() -> second).back();
+        int res = *cur;
+        (freq2Iter.rbegin() -> second).pop_back();
+        if ((freq2Iter.rbegin() -> second).empty())
+        {
+            freq2Iter.erase(val2freq[res]);
+        }
+        datas.erase(cur);
+        --val2freq[res];
+        return res;
+    }
+};
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack* obj = new FreqStack();
+ * obj->push(x);
+ * int param_2 = obj->pop();
+ */
+
+方法三
+hashMap+栈
+
+class FreqStack {
+public:
+    int max_freq = 0;
+    unordered_map<int,int> umap;//计数
+    unordered_map<int,stack<int>> group;
+    FreqStack() {
+        
+    }
+    
+    void push(int x) {
+       umap[x]++;
+       group[umap[x]].push(x);
+       max_freq = max(umap[x],max_freq);
+    }
+    
+    int pop() {
+       int val = group[max_freq].top();
+       umap[val]--;
+       group[max_freq].pop();
+       if(group[max_freq].empty()){
+           max_freq--;
+       }
+       return val;
+    }
+};
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack* obj = new FreqStack();
+ * obj->push(x);
+ * int param_2 = obj->pop();
+ */
+
+方法四
+class FreqStack {
+private:
+    unordered_map<int, int> hashFreq;
+    vector<stack<int>> s1;
+public:
+    FreqStack() {
+    }
+    
+    void push(int x) {
+        if (hashFreq.find(x) != hashFreq.end()) hashFreq[x]++;
+        else hashFreq[x] = 1;
+        if (hashFreq[x] > s1.size()) s1.push_back(stack<int>());
+        s1[hashFreq[x] - 1].push(x);
+    }
+    
+    int pop() {
+        int top = s1.back().top();
+        s1.back().pop();
+        if (s1.back().empty()) s1.pop_back();
+        hashFreq[top]--;
+        return top;
+    }
+};
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack* obj = new FreqStack();
+ * obj->push(x);
+ * int param_2 = obj->pop();
+ */
+
+方法五
+map+链表处理
+解题思路
+1 总体思路：使用map记录某个数字的出现次数。使用一个双向链表，每一个节点包含数字值A，当前数字值A在当前位置以及它之前出现的总的次数，还有preNode和nextNode
+2 push操作。
+首先map的对应的A的计数值增加1
+然后从链表头开始查找，找到第一个小于等A次数的节点Node1，将A插入到Node1的前面座位preNode
+3 pop操作
+从链表头开始pop。每次pop完毕一个node后，将map中该node的数字减1
+
+代码
+
+
+class TwoDiractionNode {
+public:
+    int mValue;
+    int count;
+    TwoDiractionNode *mPre;
+    TwoDiractionNode *mNext;
+    TwoDiractionNode(int node) {
+        mValue = node;
+        mPre = nullptr;
+        mNext = nullptr;
+    };
+
+};
+
+class FreqStack {
+public:
+    int mSize;
+    map<int,int> *msizeMap;
+    TwoDiractionNode *mTop;
+    
+    FreqStack() {
+        mSize = 0;
+        mTop = nullptr;
+        msizeMap = new map<int, int>();
+    }
+    
+    void push(int x) {
+        mSize++;
+        TwoDiractionNode *currentNode = new TwoDiractionNode(x);
+        (*msizeMap)[x]++;
+        int currentCount = (*msizeMap)[x];
+        currentNode->count = currentCount;
+   
+        if (mTop == nullptr) {
+            mTop = currentNode;
+            return;
+        }
+        
+        if (currentCount >= mTop->count) {
+            currentNode->mNext = mTop;
+            mTop->mPre = currentNode;
+            mTop = currentNode;
+            return;
+        }
+        
+        TwoDiractionNode *tmpNode = mTop;
+        TwoDiractionNode *preNode = tmpNode;
+        while (tmpNode) {
+            if (tmpNode->count > currentCount) {
+                preNode = tmpNode;
+                tmpNode = tmpNode->mNext;
+            }
+            else {
+                break;
+            }
+        }
+        
+        if (tmpNode) {
+            currentNode->mNext = tmpNode;
+            tmpNode->mPre = currentNode;
+            currentNode->mPre = preNode;
+            preNode->mNext = currentNode;
+        }
+        else {
+            preNode->mNext = currentNode;
+            currentNode->mPre = tmpNode;
+        }
+    }
+    
+    int pop() {
+        mSize--;
+        (*msizeMap)[mTop->mValue]--;
+        int value = mTop->mValue;
+        mTop = mTop->mNext;
+        return value;
+    }
+};
+
+
+
+方法六
+ 大顶堆
+ 解题思路
+用栈确实没有想出来，用大顶堆反而做出来了。大顶堆的思路比较简单
+1）利用hash维护一个unordered_map<int, int> countmap ，其中key是push的数字，value是该数值的个数n
+2）我们使用优先级队列，维护一个大顶堆，每个元素由三个元素{数值value，timepstamp，当前数值的个数n}
+3）自定义优先级队列的排序函数，按照每个元素的“当前数值的个数n”进行排序，如果相等，则按照timepstamp排序
+4）pop的时候弹出栈顶，同时将hash该元素的最后一个弹出即可
+
+代码
+
+class FreqStack {
+public:
+    unordered_map<int, int> countmap;
+    struct mycmp {
+        bool operator () (vector<int> &a, vector<int> &b)
+        {
+            if (a[2] == b[2]) {
+                return a[1] < b[1];
+            }
+
+            return a[2] < b[2];
+        }
+    };
+
+    priority_queue<vector<int>, vector<vector<int>>, mycmp> bigfreheap;
+    int i = 0;
+    FreqStack() {}
+
+    void push(int x)
+    {
+        countmap[x]++;
+        bigfreheap.push(vector<int> { x, i, countmap[x] });
+        i++;
+    }
+
+    int pop()
+    {
+        vector<int> pairvalue = bigfreheap.top();
+        bigfreheap.pop();
+        countmap[pairvalue[0]]--;
+
+        return pairvalue[0];
+    }
+};
+
+方法七
+解题思路
+第一眼看这道题，将题目读错了，也意外发现一个加强版的题：它移除并返回栈中出现最频繁的元素及与之相同的元素。但其实，意外发现的加强版题目也是可以写的，但是绝对不会是弹出栈后最大频率减一这么简单，而是需要双向链表实现的栈来写，需要维护一个整数到链表节点指针的映射，push和pop操作对应普通链表的插入和删除操作，具备O(1)时间复杂度
+
+class FreqStack {
+public:
+	map<int, vector<int>>mp;
+	map<int, int>fre;
+	stack<int>st;
+	int maxf;
+	FreqStack() {
+		maxf = 0;
+	}
+	void push(int x) {
+		if (fre.count(x) == 0)
+			fre[x] = 1;
+		else fre[x]++;
+		if (mp.count(fre[x]) == 0)
+			mp[fre[x]] = vector<int>();
+		mp[fre[x]].push_back(x);
+		if (maxf < fre[x])
+			maxf = fre[x];
+	}
+	int pop() {
+		int res = mp[maxf].back();
+		mp[maxf].pop_back();
+        fre[res]--;
+		if (mp[maxf].size() == 0)maxf--;
+		return res;
+	}
+};
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack* obj = new FreqStack();
+ * obj->push(x);
+ * int param_2 = obj->pop();
+ */
+
+Java
+****************************************************************
+方法一
+链接：https://leetcode-cn.com/problems/maximum-frequency-stack/solution/java-top-k-10-by-donoghl/
+这是一个比较常见的题，虽说是困难难度，但是各大公司出现频率还是蛮高的。
+总的来说就是，建立一个类似stack的数据结构，满足的条件如下：
+可实现push pop，pop出的元素为出现次数最多的元素，如果次数相同，比较谁离着堆顶近，就pop谁。
+
+思路：
+
+在这里首先我们要建立一个class（element）来表达我们的元素，且包含三个性质，大小，出现频率，顺序大小。
+采用map和heap来实现，map用来存各个元素出现的频率，heap存element，但是我们要注意这里并不是简单的对heap按照顺序或者逆序排序，而是要做一定的判断：即频率不同时，按照频率高的输出；频率一样的时候，按照顺序大小输出。（所以我们建立了一个class，作为我们写的用于heap排序的一个条件。
+对于push，把元素放入map，放入heap中即可。
+对于pop，拿出元素的同时，要记得判断后清除map中的元素。
+
+class Element {
+  int number;
+  int frequency;
+  int sequenceNumber;
+
+  public Element(int number, int frequency, int sequenceNumber) {
+    this.number = number;
+    this.frequency = frequency;
+    this.sequenceNumber = sequenceNumber;
+  }
+}
+
+class ElementComparator implements Comparator<Element> {
+  public int compare(Element e1, Element e2) {
+    if (e1.frequency != e2.frequency)
+      return e2.frequency - e1.frequency;
+    return e2.sequenceNumber - e1.sequenceNumber;
+  }
+}
+
+class FreqStack {
+    int sequenceNumber = 0;
+    PriorityQueue<Element> maxHeap = new PriorityQueue<Element>(new ElementComparator());
+    Map<Integer, Integer> frequencyMap = new HashMap<>();
+    
+    public void push(int num) {
+        frequencyMap.put(num, frequencyMap.getOrDefault(num, 0) + 1);
+        maxHeap.offer(new Element(num, frequencyMap.get(num), sequenceNumber++));
+    }
+
+    public int pop() {
+        int num = maxHeap.poll().number;
+
+        if (frequencyMap.get(num) > 1)
+            frequencyMap.put(num, frequencyMap.get(num) - 1);
+        else
+            frequencyMap.remove(num);
+
+        return num;
+    }
+}
+
+
+time：对于push和pop，涉及到了heap的相关操作，所以O(n) = log(n)，n为当前在heap中的元素的个数。
+space：因为hashmap和heap，所以O(n) = n。
+
+
+方法二
+类单调栈实现
+解题思路
+当看到最大频率和栈时，可以明显感觉到这是一个单调栈，由栈底至栈顶元素出现频率单调增长，然而，由于存在重复元素，与传统的单调栈有所不同。
+我们可以用一个countMap对stack内元素进行频率统计，并且在每次向栈中添加元素时，借助辅助栈help实现对栈内元素的频率排序，保持栈底至栈顶元素出现频率单调增长。
+关键点在于，排序的同时须同步更新处理元素的频率统计，即更新countMap。
+
+复杂度分析
+
+空间复杂度O(N): 使用countMap，stack以及helper，容量不超过N。
+时间复杂度O(N^2): 假定每次新加入的元素都为频率最低，则stack中的每个元素需要弹出到help，再由help放置到stack中。
+
+class FreqStack {
+
+    Map<Integer, Integer> countMap;
+    Stack<Integer> stack;
+    Stack<Integer> help;
+
+    public FreqStack() {
+        countMap = new HashMap<>();
+        stack = new Stack<>();
+        help = new Stack<>();
+    }
+    
+    public void push(int x) {
+        countMap.put(x, countMap.getOrDefault(x, 0) + 1);
+        while(!stack.isEmpty() && countMap.get(stack.peek()) > countMap.get(x)) {
+            help.push(stack.pop());
+            countMap.put(help.peek(), countMap.get(help.peek()) - 1);
+        }
+        stack.push(x);
+        while(!help.isEmpty()) {
+            stack.push(help.pop());
+            countMap.put(stack.peek(), countMap.get(stack.peek()) + 1);
+        }
+    }
+    
+    public int pop() {
+        int res = stack.pop();
+        countMap.put(res, countMap.get(res) - 1);
+        return res;
+    }
+}
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack obj = new FreqStack();
+ * obj.push(x);
+ * int param_2 = obj.pop();
+ */
+
+方法三
+贴一个用PriorityQueue实现，以次数作为第一排序，以入队序号第二排序
+class FreqStack {
+        class NumHelper implements Comparable<NumHelper>{
+            int value;
+            int times;
+            int order;
+            public NumHelper(int value, int times, int order) {
+                this.value = value;
+                this.times = times;
+                this.order = order;
+            }
+            @Override
+            public int compareTo(NumHelper numHelper) {
+                int result = numHelper.times - this.times;
+                if (result == 0) {
+                    result = numHelper.order - this.order;
+                }
+                return result;
+            }
+        }
+
+        int order;
+        PriorityQueue<NumHelper> numHelpers = new PriorityQueue<>();
+        Map<Integer, Integer> timesMap = new HashMap<>();
+        public FreqStack() {
+
+        }
+
+        public void push(int x) {
+            order++;
+            int times = timesMap.getOrDefault(x, 0) + 1;
+            timesMap.put(x, times);
+            NumHelper helper = new NumHelper(x, times, order);
+            numHelpers.offer(helper);
+        }
+
+        public int pop() {
+            NumHelper numHelper = numHelpers.poll();
+            timesMap.put(numHelper.value, timesMap.get(numHelper.value) - 1);
+            return numHelper.value;
+        }
+    }
+
+方法四
+class FreqStack {
+    private Map<Integer,Integer> keyCountMap;
+    private Map<Integer,Stack<Integer>> countKeyStackMap;
+    private int maxCount;
+
+    public FreqStack() {
+        keyCountMap = new HashMap<>();
+        countKeyStackMap = new HashMap<>();
+        maxCount = 0;
+    }
+
+    public void push(int x) {
+        Integer count = keyCountMap.get(x);
+        if(count == null){
+            count = 0;
+        }
+        ++count;
+        keyCountMap.put(x,count);
+
+        Stack<Integer> stack = countKeyStackMap.get(count);
+        if(stack == null){
+            stack = new Stack<Integer>();
+        }
+        stack.push(x);
+        countKeyStackMap.put(count,stack);
+
+        maxCount = Math.max(maxCount,count);
+    }
+
+    public int pop() {
+        Stack<Integer> stack = countKeyStackMap.get(maxCount);
+        Integer key = stack.pop();
+
+        if(stack.size() == 0){
+            --maxCount;
+        }
+
+        Integer count = keyCountMap.get(key);
+        keyCountMap.put(key,--count);
+
+        return key;
+    }
+}
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack obj = new FreqStack();
+ * obj.push(x);
+ * int param_2 = obj.pop();
+ */
+
+方法五
+栈巧妙结合map
+解题思路
+算法思想:
+为每一个频率都维护一个栈,元素在新增的时候会出现低频率-->高频率的切换
+频率的出现是由低向高,且是连续的, 如果最大频率是5, 一定处在频率是 4,3,2,1的栈
+此时不需要把低频率的元素删除,因为当出栈时候,元素有高频率-->低频率的切换,且元素的相对顺序没有变化
+使用一个map维护一个频率->stack映射表
+使用一个map维护元素出现的频率
+使用一个变量代表最大频率,因为只要有最高频率,其他的频率都可以知道,因为频率是有元素新增的时候,
+逐渐变大的, 当出栈时候,只需要判断当前最大频率维护的栈是否为空,如果为空,最大频率-1即可
+
+代码
+
+class FreqStack {
+
+    private int maxFreq;
+
+    private Map<Integer,Integer> freq;//维护每个元素出现的频率
+
+    private Map<Integer, Deque<Integer>> map;//维护频率--->栈的映射
+    public FreqStack() {
+        map =new HashMap<>();
+        freq = new HashMap<>();
+        maxFreq=0;
+    }
+
+    public void push(int x) {
+
+        int f=freq.getOrDefault(x,0)+1;
+        freq.put(x, f);//更新频率
+        if(f>maxFreq){//实时更新最大频率
+            maxFreq=f;
+        }
+        //不存在时,初始化之后开始操作
+        map.computeIfAbsent(f, z -> new ArrayDeque<>()).push(x);
+    }
+
+    public int pop() {
+
+        Integer k = map.get(maxFreq).pop();
+        if(map.get(maxFreq).isEmpty()){//最大频率维护的栈为空时
+            maxFreq--;
+        }
+        freq.put(k,freq.get(k)-1);
+        return k;
+    }
+}
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * FreqStack obj = new FreqStack();
+ * obj.push(x);
+ * int param_2 = obj.pop();
+ */
+
+或者
+方法：栈
+思路
+
+显然，我们更关心元素的频率。令 freq 作为 xx 到 xx 的出现次数的映射 Map。
+
+此外，我们也（可能）关心 maxfreq，即栈中任意元素的当前最大频率。这是理所应当的事情，因为我们必须弹出频率最高的元素。
+
+那么当前主要的问题就变成了：在具有相同的（最大）频率的元素中，怎么判断那个元素是最新的？我们可以使用栈来查询这一信息：靠近栈顶的元素总是相对更新一些。
+
+为此，我们令 group 作为从频率到具有该频率的元素的映射。到目前，我们已经实现了 FreqStack 的所有必要的组件。
+
+算法
+
+实际上，作为实现层面上的一点细节，如果 x 的频率为 f，那么我们将获取在所有 group[i] (i <= f) 中的 x,而不仅仅是栈顶的那个。这是因为每个 group[i] 都会存储与第 i 个 x 副本相关的信息。
+
+此后，我们仅仅需要如上所述维护 freq，group，以及 maxfreq。
+
+
+class FreqStack {
+    Map<Integer, Integer> freq;
+    Map<Integer, Stack<Integer>> group;
+    int maxfreq;
+
+    public FreqStack() {
+        freq = new HashMap();
+        group = new HashMap();
+        maxfreq = 0;
+    }
+
+    public void push(int x) {
+        int f = freq.getOrDefault(x, 0) + 1;
+        freq.put(x, f);
+        if (f > maxfreq)
+            maxfreq = f;
+
+        group.computeIfAbsent(f, z-> new Stack()).push(x);
+    }
+
+    public int pop() {
+        int x = group.get(maxfreq).pop();
+        freq.put(x, freq.get(x) - 1);
+        if (group.get(maxfreq).size() == 0)
+            maxfreq--;
+        return x;
+    }
+}
+
+
+
+Python
+**************************************************************************
+方法一 栈
+思路
+
+显然，我们更关心元素的频率。令 freq 作为 xx 到 xx 的出现次数的映射 Map。
+
+此外，我们也（可能）关心 maxfreq，即栈中任意元素的当前最大频率。这是理所应当的事情，因为我们必须弹出频率最高的元素。
+
+那么当前主要的问题就变成了：在具有相同的（最大）频率的元素中，怎么判断那个元素是最新的？我们可以使用栈来查询这一信息：靠近栈顶的元素总是相对更新一些。
+
+为此，我们令 group 作为从频率到具有该频率的元素的映射。到目前，我们已经实现了 FreqStack 的所有必要的组件。
+
+算法
+
+实际上，作为实现层面上的一点细节，如果 x 的频率为 f，那么我们将获取在所有 group[i] (i <= f) 中的 x,而不仅仅是栈顶的那个。这是因为每个 group[i] 都会存储与第 i 个 x 副本相关的信息。
+
+此后，我们仅仅需要如上所述维护 freq，group，以及 maxfreq。
+
+
+class FreqStack(object):
+
+    def __init__(self):
+        self.freq = collections.Counter()
+        self.group = collections.defaultdict(list)
+        self.maxfreq = 0
+
+    def push(self, x):
+        f = self.freq[x] + 1
+        self.freq[x] = f
+        if f > self.maxfreq:
+            self.maxfreq = f
+        self.group[f].append(x)
+
+    def pop(self):
+        x = self.group[self.maxfreq].pop()
+        self.freq[x] -= 1
+        if not self.group[self.maxfreq]:
+            self.maxfreq -= 1
+
+        return x
+复杂度分析
+
+时间复杂度：对于 push 和 pop 操作，O(1)。
+
+空间复杂度：O(N)，其中 N 为 FreqStack 中元素的数目。
+
+方法二
+思路
+我们以题目给的例子来讲解。
+
+使用fraq 来存储对应的数字出现次数。key 是数字，value频率
+
+
+由于题目限制“如果最频繁的元素不只一个，则移除并返回最接近栈顶的元素。”，我们考虑使用栈来维护一个频率表 fraq_stack。key是频率，value是数字组成的栈。
+
+
+同时用max_fraq 记录当前的最大频率值。
+
+第一次pop的时候，我们最大的频率是3。由fraq_stack 知道我们需要pop掉5。
+
+
+
+之后pop依次是这样的（红色数字表示顺序）
+
+
+关键点解析
+栈的基本性质
+hashtable的基本性质
+push和pop的时候同时更新fraq，max_fraq 和 fraq_stack。
+代码
+
+class FreqStack:
+
+    def __init__(self):
+        self.fraq = collections.defaultdict(lambda: 0)
+        self.fraq_stack = collections.defaultdict(list)
+        self.max_fraq = 0
+        
+    def push(self, x: int) -> None:
+        self.fraq[x] += 1
+        if self.fraq[x] > self.max_fraq:
+            self.max_fraq = self.fraq[x]
+        self.fraq_stack[self.fraq[x]].append(x)    
+        
+    def pop(self) -> int:
+        ans = self.fraq_stack[self.max_fraq].pop()
+        self.fraq[ans] -= 1
+        if not self.fraq_stack[self.max_fraq]:
+            self.max_fraq -= 1
+        return ans
+
+# Your FreqStack object will be instantiated and called as such:
+# obj = FreqStack()
+# obj.push(x)
+# param_2 = obj.pop()
+
+复杂度分析
+
+时间复杂度：push 和 pop 平均时间复杂度是 O(1)
+空间复杂度：O(N)，其中N为数字的总数。
+
+方法三
+解题思路
+思路来源：https://www.bilibili.com/video/BV1rW411Z7Hp，使用多个栈和一个字典实现。
+如果当前进入的数字的个数如果大于当前数量的栈数，就新建一个栈，然后把当前的数字压入新建的栈中，否则压入原来的栈中。
+弹出的时候从最后一个栈开始谈，因为最后一个栈是数字频率最高的栈，同时使当前弹出的数字的频率减1.
+
+class FreqStack(object):
+
+    def __init__(self):
+        self.stacks = []
+        self.freq = {}
+        
+    def push(self, x):
+        """
+        :type x: int
+        :rtype: None
+        """
+        self.freq[x] = self.freq.get(x, 0) + 1 
+        if len(self.stacks) < self.freq[x]: self.stacks.append([])
+        self.stacks[self.freq[x]-1].append(x)
+
+
+    def pop(self):
+        """
+        :rtype: int
+        """
+        x = self.stacks[-1].pop()
+        self.freq[x] = self.freq[x] - 1 
+        if len(self.stacks[-1]) == 0: self.stacks.pop()
+        if self.freq[x] == 0: del self.freq[x]
+        return x 
+
+        
+
+
+# Your FreqStack object will be instantiated and called as such:
+# obj = FreqStack()
+# obj.push(x)
+# param_2 = obj.pop()
+
+
