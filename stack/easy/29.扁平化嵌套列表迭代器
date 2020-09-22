@@ -1,0 +1,554 @@
+给你一个嵌套的整型列表。请你设计一个迭代器，使其能够遍历这个整型列表中的所有整数。
+
+列表中的每一项或者为一个整数，或者是另一个列表。其中列表的元素也可能是整数或是其他列表。
+
+ 
+
+示例 1:
+
+输入: [[1,1],2,[1,1]]
+输出: [1,1,2,1,1]
+解释: 通过重复调用 next 直到 hasNext 返回 false，next 返回的元素的顺序应该是: [1,1,2,1,1]。
+示例 2:
+
+输入: [1,[4,[6]]]
+输出: [1,4,6]
+解释: 通过重复调用 next 直到 hasNext 返回 false，next 返回的元素的顺序应该是: [1,4,6]。
+
+C++
+/**
+ * // This is the interface that allows for creating nested lists.
+ * // You should not implement it, or speculate about its implementation
+ * class NestedInteger {
+ *   public:
+ *     // Return true if this NestedInteger holds a single integer, rather than a nested list.
+ *     bool isInteger() const;
+ *
+ *     // Return the single integer that this NestedInteger holds, if it holds a single integer
+ *     // The result is undefined if this NestedInteger holds a nested list
+ *     int getInteger() const;
+ *
+ *     // Return the nested list that this NestedInteger holds, if it holds a nested list
+ *     // The result is undefined if this NestedInteger holds a single integer
+ *     const vector<NestedInteger> &getList() const;
+ * };
+ */
+
+class NestedIterator {
+public:
+    NestedIterator(vector<NestedInteger> &nestedList) {
+        for(auto it = nestedList.rbegin(); it != nestedList.rend(); it++){
+            st.push(*it);
+        }
+    }
+    
+    int next() {
+        auto n = st.top();
+        st.pop();
+        return n.getInteger();   
+    }
+    
+    bool hasNext() {
+        while(!st.empty()){
+            auto m = st.top();
+            if(m.isInteger()) return true;
+            st.pop();
+
+            auto cur = m.getList();
+            for(auto s = cur.rbegin(); s != cur.rend(); s++){
+                st.push(*s);
+            }
+        }
+
+        return false;
+    }
+private:
+    stack<NestedInteger> st;
+};
+
+/**
+ * Your NestedIterator object will be instantiated and called as such:
+ * NestedIterator i(nestedList);
+ * while (i.hasNext()) cout << i.next();
+ */
+ 
+ C++
+ ********************************************************************
+ 方法一
+ 栈
+vector
+列表遍历
+迭代器
+
+思路
+1. 时间均衡的栈
+构造时仅仅扒一层皮就 逆向 堆入栈中，在用户调用 hasNext 时才做深入扒皮搜索。
+
+这种做法比较时间均衡，如果用户搞了一个很长的列表，然后就取前边几个元素就不用了，那这种实现要高效的多。
+
+
+class NestedIterator {
+private:
+  stack<NestedInteger> st;
+public:
+  NestedIterator(vector<NestedInteger> &nestedList) {
+    for (auto iter = nestedList.rbegin(); iter != nestedList.rend(); iter++) {
+      st.push(*iter);
+    }
+  }
+
+  int next() {
+    auto t = st.top();
+    st.pop();
+    return t.getInteger();
+  }
+
+  bool hasNext() {
+    while (!st.empty()) {
+      auto cur = st.top();
+      if (cur.isInteger()) return true;
+      st.pop();
+      auto curList = cur.getList();
+      for (auto iter = curList.rbegin(); iter != curList.rend(); iter++) {
+        st.push(*iter);
+      }
+    }
+    return false;
+  }
+};
+2. 头重脚轻的栈
+构造时扒皮抽骨到单个数字再 push 到栈里。这样预处理很慢，但是调用时很快。有点头重脚轻。
+
+class NestedIterator {
+private:
+  stack<NestedInteger> st;
+public:
+  NestedIterator(vector<NestedInteger> &nestedList) {
+    for (auto iter = nestedList.rbegin(); iter != nestedList.rend(); iter++) {
+      parseData(*iter);
+    }
+  }
+  void parseData(NestedInteger item) {
+    if (item.isInteger()) {
+      st.push(item);
+    } else {
+      auto list = item.getList();
+      for (auto iter = list.rbegin(); iter != list.rend(); iter++) {
+        parseData(*iter);
+      }
+    }
+  }
+
+  int next() {
+    auto t = st.top();
+    st.pop();
+    return t.getInteger();
+  }
+
+  bool hasNext() {
+    if (st.empty()) return false;
+    return true;
+  }
+};
+
+3. 头重脚轻的 vector
+不用栈，用 vector 来做也可以。只是存储的时候不再是从尾到头而是从头到尾啦。
+
+
+class NestedIterator {
+private:
+  vector<int> v;
+  int ind = 0;
+public:
+  NestedIterator(vector<NestedInteger> &nestedList) {
+    for (auto iter = nestedList.begin(); iter != nestedList.end(); iter++) {
+      parseData(*iter);
+    }
+  }
+  void parseData(NestedInteger item) {
+    if (item.isInteger()) {
+      v.push_back(item.getInteger());
+    } else {
+      auto list = item.getList();
+      for (auto iter = list.begin(); iter != list.end(); iter++) {
+        parseData(*iter);
+      }
+    }
+  }
+
+  int next() {
+    return v[ind++];
+  }
+
+  bool hasNext() {
+    if (ind >= v.size()) return false;
+    return true;
+  }
+};
+
+方法二
+先序遍历parse data, 迭代器取值
+class NestedIterator {
+public:
+    vector<int> data;
+    vector<int>::iterator it;
+    NestedIterator(vector<NestedInteger> &nestedList) {
+        parse(nestedList);
+        it = data.begin();
+    }
+    
+    void parse(vector<NestedInteger> &nestedList){
+        for(auto nes : nestedList){
+            if(nes.isInteger()) data.push_back(nes.getInteger());
+            else parse(nes.getList());
+        }
+    }
+
+    int next() {
+        return *it++;
+    }
+    
+    bool hasNext() {
+        return it != data.end();
+    }
+};
+
+Java
+*****************************************************************
+方法一 使用List + 递归
+简单粗暴，在初始化迭代器的时候就直接把结果遍历出来，递归遍历列表中的数据，是整数就放入List，不是则再递归遍历，代码结构简单。
+public class NestedIterator implements Iterator<Integer> {
+
+    private List<Integer> list;
+    private int index;
+
+    public NestedIterator(List<NestedInteger> nestedList) {
+        list = integerIterator(nestedList);
+        index = -1;
+    }
+
+    @Override
+    public Integer next() {
+        if (this.hasNext())  return list.get(++index);
+        return null;
+    }
+
+    @Override
+    public boolean hasNext() {
+        if (index + 1 < list.size()) return true;
+        return false;
+    }
+
+    private static List<Integer> integerIterator(List<NestedInteger> nestedIntegerList) {
+        ArrayList<Integer> list = new ArrayList<>(nestedIntegerList.size());
+        for (NestedInteger tmp : nestedIntegerList) {
+            if (tmp.isInteger()) 
+                list.add(tmp.getInteger());
+            else 
+                list.addAll(integerIterator(tmp.getList()));
+        }
+        return list;
+    }
+}
+
+方法三
+栈实现
+public class NestedIterator implements Iterator<Integer> {
+
+    private Stack<NestedInteger> stack = new Stack<>();
+
+
+    public NestedIterator(List<NestedInteger> nestedList) {
+
+        for (int i = nestedList.size() - 1; i >= 0; i--) {
+
+            stack.push(nestedList.get(i));
+        }
+    }
+
+    @Override
+    public Integer next() {
+
+        return stack.pop().getInteger();
+
+    }
+
+    @Override
+    public boolean hasNext() {
+
+        while (!stack.isEmpty()) {
+
+            NestedInteger top = stack.peek();
+
+            if (top.isInteger()) return true;
+            
+            top = stack.pop();
+
+            for (int i = top.getList().size() - 1; i >= 0 ; i--) {
+
+                stack.push(top.getList().get(i));
+            }
+        }
+
+        return false;
+
+    }
+}
+
+或者
+栈的解法，借助另一个栈来前后颠倒一下
+public class NestedIterator implements Iterator<Integer> {
+    private Stack<Integer> s1 = new Stack<>();
+    private Stack<Integer> s2 = new Stack<>();
+
+    public NestedIterator(List<NestedInteger> nestedList) {
+        traversal(nestedList);
+        while(!s1.empty()) {
+            s2.push(s1.pop());
+        }
+    }
+
+    @Override
+    public Integer next() {
+        return s2.pop();
+    }
+
+    @Override
+    public boolean hasNext() {
+        return !s2.isEmpty();
+    }
+
+    private void traversal(List<NestedInteger> nestedList) {
+        for (NestedInteger temp : nestedList) {
+            if (temp.isInteger()) {
+                s1.push(temp.getInteger());
+            } else {
+                traversal(temp.getList());
+            }
+        }
+    }
+}
+
+方法三
+题意
+题目给了NestedInteger这种数据结构，然后要我们处理List<NestedInteger>,将其扁平化。
+首先List<NestedInteger> 是一个列表，里面元素类型是NestedInteger。而ListNestedInteger是什么呢，它可能是一个整数，可能是一个List<NestedInteger>。所以递归的味道已经很浓了，使用深搜DFS或者栈Stack都行。
+
+一次性处理
+这个解法是使用递归，把List<NestedInteger>一次性提取到List当中，再使用ListIterator的hasNext和next即可。
+
+
+public class NestedIterator implements Iterator<Integer> {
+    List<Integer> list = new ArrayList<>();
+    ListIterator<Integer> it;
+    
+    public NestedIterator(List<NestedInteger> nestedList) {
+        dfs(nestedList);
+        it = list.listIterator();
+    }
+
+    @Override
+    public Integer next() {
+        return it.next();
+    }
+
+    @Override
+    public boolean hasNext() {
+        return it.hasNext();
+    }
+    
+    private void dfs(List<NestedInteger> nestedList){
+        for (NestedInteger nestedinteger: nestedList) {
+            if (nestedinteger.isInteger()) {
+                list.add(nestedinteger.getInteger());
+            } else {
+                dfs(nestedinteger.getList());
+            }
+        }
+    }
+}
+
+真 迭代器
+这个解法使用了Stack，可以实现真迭代器功能。
+(我不使用Java中的Stack，而是使用Deque双端队列当栈，也就是只使用peekFirst，pollFirst和offerFirst))
+
+public class NestedIterator implements Iterator<Integer> {
+    Deque<NestedInteger> stack = new ArrayDeque<>();
+    
+    public NestedIterator(List<NestedInteger> nestedList) {
+        for (int i = nestedList.size(); i >= 0; --i) {
+            stack.offerFirst(nestedList.get(i));
+        }
+    }
+
+    @Override
+    public Integer next() {
+        return stack.pollFirst().getInteger();
+    }
+
+    @Override
+    public boolean hasNext() {
+        if (stack.isEmpty()) {
+            return false;
+        } else {  
+            if (!stack.peekFirst().isInteger()){
+                List<NestedInteger> ni = stack.pollFirst().getList();
+                for (int i = ni.size() - 1; i >= 0; --i) {
+                    stack.offerFirst(ni.get(i));
+                }
+                return hasNext();   
+            }else {
+                return true;
+            }
+        }
+    }
+}
+
+Python
+***************************************************************
+方法一 栈+迭代
+思路
+整体思路为将 NestedInteger结构体中的内容依次压栈，并保证栈顶为Integer即可
+
+本来写的还挺复杂，结果修了几次[[[]],[]]这种test case以后反而代码越来越精简了...真的是越简单的代码出bug的概率越低-_-
+
+代码
+
+class NestedIterator:
+    def __init__(self, nestedList: [NestedInteger]):
+        # 对于nestedList中的内容，我们需要从左往右遍历，
+        # 但堆栈pop是从右端开始，所以我们压栈的时候需要将nestedList反转再压栈
+        self.stack = nestedList[::-1]
+
+    def next(self) -> int:
+        # hasNext 函数中已经保证栈顶是integer，所以直接返回pop结果
+        return self.stack.pop(-1).getInteger()
+
+    def hasNext(self) -> bool: 
+        # 对栈顶进行‘剥皮’，如果栈顶是List，把List反转再依次压栈，
+        # 然后再看栈顶，依次循环直到栈顶为Integer。
+        # 同时可以处理空的List，类似[[[]],[]]这种test case           
+        while len(self.stack) > 0 and self.stack[-1].isInteger() is False:
+            self.stack += self.stack.pop().getList()[::-1]
+        return len(self.stack) > 0
+
+方法二
+迭代器版本
+class NestedIterator(object):
+
+    def __init__(self, nestedList):
+        """
+        Initialize your data structure here.
+        :type nestedList: List[NestedInteger]
+        """
+        def build_generator(nestedList):
+            for i in nestedList:
+                if i.isInteger():
+                    yield i.getInteger()
+                else:
+                    i = i.getList()
+                    for j in build_generator(i):
+                        yield j
+        self.g = build_generator(nestedList)
+
+    def next(self):
+        """
+        :rtype: int
+        """
+        #print(self.v)
+        return self.v
+
+    def hasNext(self):
+        """
+        :rtype: bool
+        """
+        try:
+            self.v = next(self.g)
+        #print(self.v)
+            return True
+        except:
+            return False
+
+方法三
+解题思路
+首先先将NestedInteger列表展平存储在一个自定义栈stack中，此时：
+
+取下一个元素是通过stack.pop(0)
+判断是否为空是通过stack != []
+问题的关键就是如何将该对象展平：因此我这里定义了一个生成器，利用递归来进行展平，递归的入口是用来初始化生成器的对象nestedList。在该递归函数中:
+
+当对象为列表类型的时候需要逐一取出其中的元素(NestedInteger类对象)进行判断，根据NestedInteger的类型来进行下一步递归：
+  元素类型为Integer时，直接取该对象进行递归，即item
+  元素类型为List时，取对象中的列表进行递归，即item.getList()
+元素为int类型时，直接yield item.getInteger()
+代码
+class NestedIterator:
+    def __init__(self, nestedList: [NestedInteger]):
+        self.stack = []
+        for item in self.Flatten(nestedList):
+            self.stack.append(item)
+
+    def Flatten(self,lst):
+        if type(lst) == list:
+            for item in lst:
+                if item.isInteger():
+                    yield from self.Flatten(item)
+                else:
+                    yield from self.Flatten(item.getList())
+        else:
+            yield lst.getInteger()
+    
+    def next(self) -> int:
+        return self.stack.pop(0)
+
+    def hasNext(self) -> bool:
+        return self.stack != []
+
+或者
+
+使用队列，将嵌套列表内的所有整数都入队，取下一个时出队。入队时，若为整数，则直接入队，若为嵌套列表，则递归调用入队函数。
+
+
+class NestedIterator(object):
+
+    def __init__(self, nestedList):
+        """
+        Initialize your data structure here.
+        :type nestedList: List[NestedInteger]
+        """
+        self.queue = []
+        def queue_push(n_l):
+            for item in n_l:
+                if item.isInteger():
+                    self.queue.append(item.getInteger())
+                else:
+                    queue_push(item.getList())
+        queue_push(nestedList)
+
+    def next(self):
+        """
+        :rtype: int
+        """
+        return self.queue.pop(0)
+
+    def hasNext(self):
+        """
+        :rtype: bool
+        """
+        return len(self.queue) > 0
+
+或者
+
+直接倒序展开列表作为栈
+class NestedIterator:
+    def __init__(self, nestedList: [NestedInteger]):
+        self.stk = list(reversed(nestedList))
+
+    def next(self) -> int:
+        return self.stk.pop().getInteger()
+
+    def hasNext(self) -> bool:
+        while len(self.stk) > 0 and not self.stk[-1].isInteger():
+            self.stk.extend(list(reversed(self.stk.pop().getList())))
+        return len(self.stk) > 0
+
