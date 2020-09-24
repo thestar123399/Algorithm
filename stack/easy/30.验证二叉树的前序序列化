@@ -1,0 +1,596 @@
+序列化二叉树的一种方法是使用前序遍历。当我们遇到一个非空节点时，我们可以记录下这个节点的值。如果它是一个空节点，我们可以使用一个标记值记录，例如 #。
+
+     _9_
+    /   \
+   3     2
+  / \   / \
+ 4   1  #  6
+/ \ / \   / \
+# # # #   # #
+例如，上面的二叉树可以被序列化为字符串 "9,3,4,#,#,1,#,#,2,#,6,#,#"，其中 # 代表一个空节点。
+
+给定一串以逗号分隔的序列，验证它是否是正确的二叉树的前序序列化。编写一个在不重构树的条件下的可行算法。
+
+每个以逗号分隔的字符或为一个整数或为一个表示 null 指针的 '#' 。
+
+你可以认为输入格式总是有效的，例如它永远不会包含两个连续的逗号，比如 "1,,3" 。
+
+示例 1:
+
+输入: "9,3,4,#,#,1,#,#,2,#,6,#,#"
+输出: true
+示例 2:
+
+输入: "1,#"
+输出: false
+示例 3:
+
+输入: "9,#,#,1"
+输出: false
+
+C++
+class Solution {
+public:
+    bool isValidSerialization(string preorder) {
+        int pos = 1;
+        vector<string> vt;
+        char* ch = strtok((char*)preorder.c_str(),",");
+        while(ch){
+            string str = ch;
+            vt.push_back(str);
+            ch = strtok(NULL,",");
+        }
+
+        for(auto s : vt){
+            pos--;
+            if(pos<0) return false;
+            if(s != "#") pos+=2;
+        }
+
+        return pos==0;
+    }
+};
+
+C++
+*********************************************************************
+方法一
+class Solution {
+public:
+
+    //分割数组 注：strtok会改变原字符串
+    vector<string> split(string& s, const char* delim)
+    {
+        vector<string> v;
+        char* str = strtok((char*)s.c_str(), delim);
+        while (str)
+        {
+            v.push_back(string(str));
+            str = strtok(NULL, delim);
+        }
+        return v;
+    }
+
+    //1、时间复杂度O(N) 空间复杂度O(N)
+    bool isValidSerialization(string preorder) {
+
+        int slots = 1;
+
+        for (const string& node : split(preorder, ","))
+        {
+            --slots;
+
+            if (slots < 0) //本不应该再有槽了 但preorder出现了多的槽
+            {
+                return false;
+            }
+
+            if (node != "#") //是数字
+            {
+                slots += 2;
+            }
+        }
+
+        return slots == 0;
+    }
+
+
+    //2、不分割数组 直接遍历preorder  时间复杂度O(N) 空间复杂度O(1)
+    bool isValidSerialization(string preorder) {
+
+        if (preorder.empty())
+        {
+            return false;
+        }
+
+        int slots = 1;
+
+        for (int i = 0; i < preorder.size() - 1; ++i)
+        {
+            //如果下一个是',' 则slots减一
+            if (preorder.at(i + 1) == ',')
+            {
+                --slots;
+                if (slots < 0)
+                {
+                    return false;
+                }
+
+                if (preorder.at(i) != '#') //是数字
+                {
+                    slots += 2;
+                }
+            }
+            
+        }
+
+        //最后一个元素 没有下一个","了 需要单独处理 
+        --slots;
+        if (preorder.back() != '#') //最后一个是数字
+        {
+            slots += 2;
+        }
+
+        return slots == 0;
+    }
+};
+
+方法二
+数学证明
+
+**对于任意一颗二叉树，空节点个数=非空节点个数+1**
+设二叉树中，度为2的节点个数为n2，度为1的节点个数为n1，度为0的节点(叶节点)个数为n0
+首先证明，对于任意一颗二叉树，n0=n2+1
+    二叉树的节点总数为N=n0+n1+n2;
+    二叉树的边数为N-1,因为除根节点外，每个节点都是由一条边延伸出来的
+    二叉树的边数为n1+2*n2，所以N-1=n1+2*n2
+    所以 n1+2*n2+1=n0+n1+n2 => n0=n2+1
+其次，空节点个数=n1+2*n0
+    n0=n2+1
+=>  n0*2+n1=n0+n1+n2+1
+即空节点个数=非空节点个数+1
+代码想法
+用stack记录一个非空节点
+跳过分割符','
+如果遇到空节点，判断栈是否非空；如果非空，出栈；如果为空，判断该空节点是不是前序遍历的最后一个节点
+遇到非空节点，记得while循环，不要以为只有个位数值哦
+因为前序遍历的结果最后应该只有一个'#'，所以左子树剩下的’#‘和右子树剩下的'#'，与根节点合并，应该还剩一个'#'
+
+代码
+
+class Solution {
+public:
+    bool isValidSerialization(string preorder) {
+       stack<bool> s;
+       for(int i=0;i<preorder.size();){
+           if(preorder[i]==',')
+                i++;
+            else if(preorder[i]=='#'){
+                if(s.empty())
+                    return i==preorder.size()-1;
+                else
+                    s.pop();
+                i++;
+            }
+            else{
+                while(i<preorder.size()&&preorder[i]!=','&&preorder[i]!='#')
+                    i++;
+                s.push(1);
+            }
+       }
+       return false;
+    }
+};
+
+方法三
+只需要利用栈特性，无需考虑数据内容
+通过简单观察可以发现，最后#的数量肯定比数字多一个。
+
+所以考虑到前序遍历先根后左右的特性，思路就是，每次遇到数字就直接push，遇到#就pop。
+
+当字符是#时，判断栈是否为空，如果是空的，再判断是否已经是字符串最后了，不是最后的话说明#的位置错了，反之说明是正确的前序遍历。
+
+栈不为空就直接pop，i++是为了跳过分隔符。
+
+类型选了bool是因为选啥都行，只是占位符而已，所以尽量选个简单的。
+
+代码
+
+class Solution {
+public:
+    bool isValidSerialization(string preorder) {
+        if (preorder.empty()) return false;
+        stack<bool> s;
+        for (int i = 0; i < preorder.size(); ++i) {
+            if (preorder[i] == '#') {
+                if (s.empty()) return i == preorder.size() - 1;
+                else {
+                    s.pop();
+                    i++;
+                }
+            }
+            else {
+                while (i < preorder.size() && preorder[i] != ',') i++;
+                s.push(0);
+            }
+        }
+        return false;
+    }
+};
+
+方法四
+用flag==1标记子树未遍历结束，flag==0子树遍历结束
+当弹出栈内元素（根）代表要遍历左右子树--默认遍历了左子树，置flag=1
+当遍历右子树为空结点且flag=1置flag=0表示子树遍历结束
+
+代码
+
+class Solution {
+public:
+    bool isValidSerialization(string preorder) {
+        int n = preorder.length();
+        stack<int> s;
+        //flag用于标记子树是否遍历完成
+        int flag=1;
+        for(int i=0;i<n;i++){
+            //字符串未结束，但已经遍历完前序序列
+            if(flag==0) return false;
+            //如果为非空结点，则push
+            if(preorder[i]!='#'){
+                while(i<n && preorder[i]!=','){
+                    i++;
+                }
+                //push(1)标记push结点
+                s.push(1);
+            }
+            else{
+                i++;//去掉逗号
+                //遍历完某颗子树，置flag=0
+                if(flag) flag=0;
+                //左子树为空，弹出根
+                if(!s.empty()) {
+                    s.pop();
+                    flag=1;
+                }
+                
+            }
+        }
+        if((s.empty())&&(!flag)) return true;
+        else return false;    
+    }
+    
+    
+};
+
+Java
+***************************************************************
+方法一 迭代
+思路
+
+首先不考虑最优性，从最简单的解法来讨论这个问题。
+
+我们可以定义一个概念，叫做槽位，二叉树中任意一个节点或者空孩子节点都要占据一个槽位。二叉树的建立也伴随着槽位数量的变化。开始时只有一个槽位，如果根节点是空节点，就只消耗掉一个槽位，如果根节点不是空节点，除了消耗一个槽位，还要为孩子节点增加两个新的槽位。之后的节点也是同理。
+
+有了上面的讨论，方法就很简单了。依次遍历前序序列化，根据节点是否为空，按照规则消耗/增加槽位。如果最后可以将所有的槽位消耗完，那么这个前序序列化就是合法的。
+
+开始时只有一个可用槽位。
+
+空节点和非空节点都消耗一个槽位。
+
+空节点不增加槽位，非空节点增加两个槽位。
+
+
+
+算法
+
+初始化可用槽位：slots = 1。
+
+根据逗号分隔前序序列化，将结果数组存储，随后遍历该数组：
+
+空节点和非空节点都消耗一个槽位：slots = slot - 1.
+
+如果当前的可用槽位是负数，那么这个前序序列化是非法的，返回 False。
+
+非空节点（node != '#'）新增两个可用槽位：slots = slots + 2.
+
+如果所有的槽位都消耗完，那么这个前序序列化就是合法的：返回 slots == 0。
+
+实现
+
+class Solution {
+  public boolean isValidSerialization(String preorder) {
+    // number of available slots
+    int slots = 1;
+
+    for(String node : preorder.split(",")) {
+      // one node takes one slot
+      --slots;
+
+      // no more slots available
+      if (slots < 0) return false;
+
+      // non-empty node creates two children slots
+      if (!node.equals("#")) slots += 2;
+    }
+
+    // all slots should be used up
+    return slots == 0;
+  }
+}
+
+复杂度分析
+
+时间复杂度：O(N)，其中 N 为字符串的长度。
+
+空间复杂度：O(N)。
+
+方法二：一遍过
+思路
+
+方法一需要用到 O(N)O(N) 的空间来存储前序序列化分割之后的结果数组，但我们可以直接遍历前序序列化字符串，这样就不用开辟额外空间了。
+
+在遍历过程中，每遇到逗号字符就更新可用槽位的数量。首先，将槽位减一（空节点和非空节点都要消耗一个槽位）。其次，如果当前节点是非空节点（即逗号字符前不是 #），新增两个槽位。
+
+需要注意的是，最后一个节点需要单独处理，因为最后一个节点后面没有逗号字符。
+
+算法
+
+初始化可用槽位为 1：slots = 1。
+
+遍历前序序列化字符串，每遍历到逗号字符：
+
+空节点和非空节点都消耗一个槽位：slots = slot - 1。
+
+如果当前可用槽位是负数，那么这个先序序列就是非法的，返回 False。
+
+非空节点（即逗号字符前不是 #），新增两个可用槽位：slots = slots + 2`。
+
+最后一个节点需要单独处理，因为最后一个节点后面是没有逗号的。
+
+如果可用槽位全部被消耗完，那么该前序序列化就是合法的：返回 slots == 0。
+
+实现
+
+class Solution {
+  public boolean isValidSerialization(String preorder) {
+    // number of available slots
+    int slots = 1;
+
+    int n = preorder.length();
+    for(int i = 0; i < n; ++i) {
+      if (preorder.charAt(i) == ',') {
+        // one node takes one slot
+        --slots;
+
+        // no more slots available
+        if (slots < 0) return false;
+
+        // non-empty node creates two children slots
+        if (preorder.charAt(i - 1) != '#') slots += 2;
+      }
+    }
+
+    // the last node
+    slots = (preorder.charAt(n - 1) == '#') ? slots - 1 : slots + 1;
+    // all slots should be used up
+    return slots == 0;
+  }
+}
+
+复杂度分析
+
+时间复杂度：O(N)，其中 N 为字符串的长度。
+
+空间复杂度：O(1)，只占用常数空间。
+
+方法三
+核心思想：将"[0-9]+,#,#"替换为"#"，最终只剩下"#"说明true
+
+方法一：replaceAll正则匹配替换，直观，效率低，击败5%
+
+
+class Solution {
+    public boolean isValidSerialization(String preorder) {
+        int len = preorder.length();
+        for (;;) {
+            preorder = preorder.replaceAll("[0-9]+,#,#", "#");
+            if (len == preorder.length()) {
+                break;
+            } else {
+                len = preorder.length();
+            }
+        }
+        return "#".equals(preorder);
+    }
+}
+方法二：#号计数法。
+栈方法的本质还是为了替换，只是它后进先出的特性方便从前到后进行匹配替换；
+如果我们从后到前匹配替换，其特性就可有可无了。
+这里我们对#进行计数count，从后开始：
+1、如果是#，count加1；
+2、如果不是#：
+a、如果count>=2，即【[0-9]+,#,#】匹配成功，替换为【#】；#号由2个变为1个，所以count减1进行替换模拟；
+b、匹配失败，直接返回false。
+3、最终只会剩下一个#，即count为1。
+
+效率击败83%。
+
+
+class Solution {
+    public boolean isValidSerialization(String preorder) {
+        String[] arr = preorder.split(",");
+        int count = 0;
+        for (int i=arr.length-1; i>=0; i--) {
+            if ("#".equals(arr[i])) {
+                count++;
+            } else if (count >= 2) {
+                count--;
+            } else {
+                return false;
+            }
+        }
+        return (count==1);
+    }
+}
+
+方法四
+1.栈（通过）
+第一种方法是使用栈来模拟二叉树的遍历，就是如果此时栈中的前两层都是null（"#"），那就将这颗子树弹出去，过程中要判断这棵子树的根节点是否为空，为空直接返回false，如果不为空将这棵树弹出去之后用一个"#"代替，这样一遍遍历下来栈中保留的就应该只有一个"#",对其进行判断，满足返回true，否则返回false
+
+
+class Solution {
+    public boolean isValidSerialization(String preorder) {
+        //还可以使用栈来模拟这个二叉树遍历的过程
+        int n=preorder.length();
+        if(n==0) return true;
+        
+        String[]arr=preorder.split(",");
+        Stack<String> sk=new Stack<String>();
+        
+        for(int i=0;i<arr.length;i++){                         
+            sk.push(arr[i]);
+            while(sk.size()>=3&&sk.get(sk.size()-1).equals("#")&&sk.get(sk.size()-2).equals("#")) {
+            	sk.pop();
+            	sk.pop();
+            	///如果根节点为空，返回false
+            	if(sk.peek().equals("#")) return false;
+            	sk.pop();
+            	
+            	sk.push("#");
+            }
+
+        }
+        
+        return sk.size()==1&&sk.peek().equals("#");
+    }
+}
+2.找规律（通过）
+我们知道二叉树有一个性质就是整棵树叶子节点的个数比内部节点的个数大1，当然在遍历的过程中，叶子节点的个数一定是小于等于内部节点的个数的，如果不满足这个条件，证明有根节点为空，直接返回false，遍历完成后，只需要验证一下上面说的性质就可以了
+
+
+class Solution {
+    public boolean isValidSerialization(String preorder) {
+        int n=preorder.length();
+        if(n==0) return true;
+        
+        int n0=0; int n2=0;
+        String[]arr=preorder.split(",");
+        
+        for(int i=0;i<arr.length;i ++){
+            if(arr[i].equals("#")) n0++;
+            else n2++;
+            
+            if(i!=arr.length-1&&n0>n2) return false;
+        }
+        
+        return n0==n2+1;
+    }
+}
+
+
+方法五
+递归
+解题思路
+判断当前节点是否合法，当前节点合法，判断左节点是否合法，左节点合法则判断右节点是否合法
+
+用指针s指向当前节点，N表示节点
+
+当N(s)为"#",推进指针，直接返回
+当s越界，那么返回-1，表示节点不合法
+在入口拿到整棵树的判断响应，如s还没走完，则存在还没判断的节点
+代码
+
+class Solution {
+    public boolean isValidSerialization(String preorder) {
+        String[] cs = preorder.split(",");
+        int s=this.check(cs,0);
+        return s==-1||s<=cs.length-1?false:true;
+    }
+    
+    public int check(String[] cs,int s){
+        if(s>=cs.length){//还需子节点，但是已经没有字符了
+            return -1;
+        }
+        if("#".equals(cs[s])){//遇到空节点了
+            return ++s;
+        }
+        //合法的节点，判断左子树
+        s=check(cs,++s);
+        if(s==-1) return s;
+        //判断右子树
+        s=check(cs,s);
+        return s;
+    }
+}
+
+Python
+************************************************************
+方法一：迭代
+class Solution:
+    def isValidSerialization(self, preorder: str) -> bool:
+        # number of available slots
+        slots = 1
+
+        for node in preorder.split(','):
+            # one node takes one slot
+            slots -= 1
+            
+            # no more slots available
+            if slots < 0:
+                return False
+            
+            # non-empty node creates two children slots
+            if node != '#':
+                slots += 2
+        
+        # all slots should be used up
+        return slots == 0
+
+方法二：一遍过
+class Solution:
+    def isValidSerialization(self, preorder: str) -> bool:
+        # number of available slots
+        slots = 1
+        
+        prev = None  # previous character
+        for ch in preorder:
+            if ch == ',':
+                # one node takes one slot
+                slots -= 1
+
+                # no more slots available
+                if slots < 0:
+                    return False
+
+                # non-empty node creates two children slots
+                if prev != '#':
+                    slots += 2
+            prev = ch
+        
+        # the last node
+        slots = slots + 1 if ch != '#' else slots - 1 
+        # all slots should be used up
+        return slots == 0
+
+方法三
+主要思想：
+1.num初始化为1，表示还可以出现#的个数
+2.循环preorder：
+①当遇到非#时：num++
+②当遇到#：num--
+3.num一旦为0时，意味着树已完成遍历，后面不应再有任何字符，否则False
+
+
+class Solution:
+    def isValidSerialization(self, preorder: str) -> bool:
+        num=1
+        preorder=preorder.split(',')
+        for i in preorder:
+            if num==0:return False
+            if i =='#':
+                num-=1
+                if num<0:return False
+            else:
+                num+=1
+        if num==0:return True
+        else:return False
+
